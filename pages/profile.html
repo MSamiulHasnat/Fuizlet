@@ -234,33 +234,6 @@
             font-size: 2rem;
         }
 
-        .photo-upload-area {
-            border: 2px dashed var(--color-border);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .photo-upload-area:hover {
-            border-color: var(--color-primary);
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .photo-upload-area input {
-            display: none;
-        }
-
-        .photo-preview {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 1rem auto;
-            display: none;
-        }
-
         .avatar-save-btn {
             width: 100%;
             margin-top: 1rem;
@@ -518,21 +491,12 @@
             <div class="avatar-tabs">
                 <button class="avatar-tab active" data-tab="emoji">😀 Emoji</button>
                 <button class="avatar-tab" data-tab="preset">🎨 Avatars</button>
-                <button class="avatar-tab" data-tab="photo">📷 Photo</button>
             </div>
             <div class="avatar-tab-content active" id="tab-emoji">
                 <div class="emoji-grid" id="emoji-grid"></div>
             </div>
             <div class="avatar-tab-content" id="tab-preset">
                 <div class="preset-grid" id="preset-grid"></div>
-            </div>
-            <div class="avatar-tab-content" id="tab-photo">
-                <div class="photo-upload-area" id="photo-upload-area">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📷</div>
-                    <p>Click to upload a photo</p>
-                    <input type="file" id="photo-input" accept="image/*">
-                    <img class="photo-preview" id="photo-preview">
-                </div>
             </div>
             <button class="avatar-save-btn" id="avatar-save-btn">Save Avatar</button>
         </div>
@@ -676,7 +640,7 @@
             const emojis = ['😀', '😎', '🤓', '🥳', '😊', '🤗', '🦊', '🐱', '🐶', '🐼', '🦁', '🐸', '🐵', '🐰', '🐻', '🦄', '🐲', '🦋', '🌈', '⭐', '🔥', '💎', '🎮', '🎸', '📚', '🎨', '🏀', '⚽', '🎯', '🚀'];
             const presets = ['👤', '👩', '👨', '👧', '👦', '🧑‍🎓', '👩‍💻', '👨‍🔬', '👩‍🎨', '🧙', '🦸', '🧛', '🧚', '🤖', '👽', '💀', '🎃', '🐱', '🦊', '🐼', '🐨', '🐯', '🦁', '🐸', '🐵'];
             let selectedAvatar = { type: 'initials', value: '' };
-            let photoDataUrl = null;
+            const currentUsername = username; // Store for closure
 
             // Populate emoji grid
             document.getElementById('emoji-grid').innerHTML = emojis.map(e =>
@@ -716,23 +680,6 @@
                 };
             });
 
-            // Photo upload
-            document.getElementById('photo-upload-area').onclick = () => document.getElementById('photo-input').click();
-            document.getElementById('photo-input').onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        photoDataUrl = ev.target.result;
-                        const preview = document.getElementById('photo-preview');
-                        preview.src = photoDataUrl;
-                        preview.style.display = 'block';
-                        selectedAvatar = { type: 'photo', value: photoDataUrl };
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
             // Modal open/close
             function openAvatarModal() { document.getElementById('avatar-modal').classList.add('active'); }
             document.getElementById('avatar-modal-close').onclick = () => document.getElementById('avatar-modal').classList.remove('active');
@@ -759,7 +706,7 @@
 
                     // Update displayed avatar
                     const avatarEl = document.getElementById('profile-avatar');
-                    renderAvatar(avatarEl, selectedAvatar.type, selectedAvatar.value, username);
+                    renderAvatar(avatarEl, selectedAvatar.type, selectedAvatar.value, currentUsername);
                     avatarEl.innerHTML += '<span class="avatar-edit-hint">✏️</span>';
 
                     document.getElementById('avatar-modal').classList.remove('active');
