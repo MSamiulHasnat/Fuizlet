@@ -8,50 +8,267 @@
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .loading {
+            color: var(--color-text-muted);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .flashcard-page {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .flashcard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .flashcard-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .flashcard-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .option-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .option-btn:hover {
+            border-color: var(--color-primary);
+        }
+
+        .option-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .progress-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--color-border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .flashcard-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front,
+        .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 1.4rem;
+            font-weight: 500;
+            text-align: center;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .flashcard-front {
+            background: white;
+            border: 3px solid var(--color-primary);
+        }
+
+        .flashcard-back {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .control-btn {
+            padding: 0.8rem 1.5rem;
+            border: 2px solid var(--color-border);
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn:hover {
+            border-color: var(--color-primary);
+            background: #f5f7ff;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .control-btn.primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .control-btn.primary:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .hint-text {
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+        }
+
+        .complete-message {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .complete-message h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .complete-message .emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 
 <body>
     <nav class="navbar">
         <a href="../index.html" class="logo">Fuizlet</a>
         <div class="nav-links">
-            <a id="back-to-set" href="set.html">Back to Set</a>
+            <a id="back-to-set" href="set.html">← Back to Set</a>
         </div>
     </nav>
 
-    <div class="flashcard-container">
-        <div id="loading" class="loading" style="text-align: center; padding: 2rem;">Loading...</div>
-        <div id="content" style="display: none;">
-            <p class="progress-text"><span id="current">1</span> / <span id="total">0</span></p>
+    <div class="flashcard-page">
+        <div id="loading" class="loading">Loading flashcards...</div>
 
-            <div class="flashcard" id="flashcard">
-                <div class="flashcard-inner">
-                    <div class="flashcard-front" id="front">Term</div>
-                    <div class="flashcard-back" id="back">Definition</div>
+        <div id="content" style="display: none;">
+            <div class="flashcard-header">
+                <span class="flashcard-title" id="set-title"></span>
+                <div class="flashcard-options">
+                    <button class="option-btn" id="shuffle-btn" title="Shuffle cards">🔀 Shuffle</button>
                 </div>
             </div>
 
-            <div class="flashcard-controls">
-                <button class="btn btn-outline" id="prev-btn">← Previous</button>
-                <button class="btn btn-outline" id="flip-btn">Flip</button>
-                <button class="btn btn-primary" id="next-btn">Next →</button>
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-label">
+                    <span id="progress-text">Card 1 of 10</span>
+                    <span id="side-indicator">Term</span>
+                </div>
             </div>
 
-            <p class="hint-text">Click the card or press Space to flip</p>
+            <div class="flashcard-container">
+                <div class="flashcard" id="flashcard">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front" id="front">Term</div>
+                        <div class="flashcard-back" id="back">Definition</div>
+                    </div>
+                </div>
+
+                <div class="flashcard-controls">
+                    <button class="control-btn" id="prev-btn">← Prev</button>
+                    <button class="control-btn" id="flip-btn">🔄 Flip</button>
+                    <button class="control-btn primary" id="next-btn">Next →</button>
+                </div>
+
+                <p class="hint-text">Click card or press <strong>Space</strong> to flip • <strong>←/→</strong> to
+                    navigate</p>
+            </div>
+
+            <div id="complete-section" class="complete-message" style="display: none;">
+                <div class="emoji">🎉</div>
+                <h2>Well done!</h2>
+                <p style="color: var(--color-text-muted); margin-bottom: 1.5rem;">You've gone through all the cards.</p>
+                <button class="control-btn primary" id="restart-btn">🔁 Start Over</button>
+                <a id="back-link" class="control-btn" href="set.html"
+                    style="text-decoration: none; margin-left: 0.5rem;">Back to Set</a>
+            </div>
         </div>
     </div>
-
-    <style>
-        .loading {
-            color: var(--color-text-muted);
-        }
-
-        .hint-text {
-            margin-top: 1rem;
-            color: var(--color-text-muted);
-            font-size: 0.9rem;
-            text-align: center;
-        }
-    </style>
 
     <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
@@ -60,10 +277,9 @@
             Fuizlet.initNavbar();
             const params = new URLSearchParams(window.location.search);
             const setId = params.get('id');
-
             const set = await Fuizlet.Store.getSetById(setId);
 
-            if (!set) {
+            if (!set || !set.terms || set.terms.length === 0) {
                 window.location.href = 'sets.html';
                 return;
             }
@@ -71,55 +287,107 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('content').style.display = 'block';
             document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+            document.getElementById('back-link').href = 'set.html?id=' + setId;
+            document.getElementById('set-title').textContent = set.title;
             document.title = set.title + ' - Flashcards';
 
-            const terms = set.terms || [];
+            let terms = [...set.terms];
             let currentIndex = 0;
+            let isShuffled = false;
 
             const flashcard = document.getElementById('flashcard');
             const frontEl = document.getElementById('front');
             const backEl = document.getElementById('back');
-            const currentEl = document.getElementById('current');
-            const totalEl = document.getElementById('total');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const sideIndicator = document.getElementById('side-indicator');
+            const completeSection = document.getElementById('complete-section');
+            const cardSection = document.querySelector('.flashcard-container');
 
-            totalEl.textContent = terms.length;
-
-            function showCard(index) {
+            function updateCard() {
                 flashcard.classList.remove('flipped');
-                frontEl.textContent = terms[index].term;
-                backEl.textContent = terms[index].definition;
-                currentEl.textContent = index + 1;
+                frontEl.textContent = terms[currentIndex].term;
+                backEl.textContent = terms[currentIndex].definition;
+                progressText.textContent = `Card ${currentIndex + 1} of ${terms.length}`;
+                progressFill.style.width = ((currentIndex + 1) / terms.length * 100) + '%';
+                sideIndicator.textContent = 'Term';
+
+                document.getElementById('prev-btn').disabled = currentIndex === 0;
             }
 
-            if (terms.length > 0) showCard(0);
+            function showComplete() {
+                cardSection.style.display = 'none';
+                completeSection.style.display = 'block';
+            }
 
-            flashcard.addEventListener('click', () => flashcard.classList.toggle('flipped'));
-            document.getElementById('flip-btn').addEventListener('click', () => flashcard.classList.toggle('flipped'));
+            function restart() {
+                currentIndex = 0;
+                cardSection.style.display = 'flex';
+                completeSection.style.display = 'none';
+                updateCard();
+            }
 
+            updateCard();
+
+            // Flip card
+            flashcard.addEventListener('click', () => {
+                flashcard.classList.toggle('flipped');
+                sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
+            });
+            document.getElementById('flip-btn').addEventListener('click', () => {
+                flashcard.classList.toggle('flipped');
+                sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
+            });
+
+            // Navigation
             document.getElementById('next-btn').addEventListener('click', () => {
                 if (currentIndex < terms.length - 1) {
                     currentIndex++;
-                    showCard(currentIndex);
+                    updateCard();
+                } else {
+                    showComplete();
                 }
             });
 
             document.getElementById('prev-btn').addEventListener('click', () => {
                 if (currentIndex > 0) {
                     currentIndex--;
-                    showCard(currentIndex);
+                    updateCard();
                 }
             });
 
+            // Shuffle
+            document.getElementById('shuffle-btn').addEventListener('click', function () {
+                isShuffled = !isShuffled;
+                this.classList.toggle('active', isShuffled);
+                if (isShuffled) {
+                    terms = Fuizlet.shuffleArray([...set.terms]);
+                } else {
+                    terms = [...set.terms];
+                }
+                currentIndex = 0;
+                updateCard();
+            });
+
+            // Restart
+            document.getElementById('restart-btn').addEventListener('click', restart);
+
+            // Keyboard
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'Space') {
                     e.preventDefault();
                     flashcard.classList.toggle('flipped');
-                } else if (e.code === 'ArrowRight' && currentIndex < terms.length - 1) {
-                    currentIndex++;
-                    showCard(currentIndex);
+                    sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
+                } else if (e.code === 'ArrowRight') {
+                    if (currentIndex < terms.length - 1) {
+                        currentIndex++;
+                        updateCard();
+                    } else {
+                        showComplete();
+                    }
                 } else if (e.code === 'ArrowLeft' && currentIndex > 0) {
                     currentIndex--;
-                    showCard(currentIndex);
+                    updateCard();
                 }
             });
         })();

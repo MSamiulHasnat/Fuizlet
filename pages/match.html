@@ -8,31 +8,205 @@
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .match-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            position: relative;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .timer-badge {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--color-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .grid-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            min-height: 500px;
+            perspective: 1000px;
+        }
+
+        .tile {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 2px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+            font-size: 0.95rem;
+            height: 140px;
+        }
+
+        .tile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile.selected {
+            border-color: var(--color-primary);
+            background: #eef2ff;
+            transform: scale(1.05);
+        }
+
+        .tile.matched {
+            opacity: 0;
+            transform: scale(0);
+            pointer-events: none;
+            transition: 0.5s;
+        }
+
+        .tile.incorrect {
+            border-color: #ef4444;
+            background: #fee2e2;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px);
+            }
+
+            75% {
+                transform: translateX(5px);
+            }
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            backdrop-filter: blur(5px);
+        }
+
+        .start-btn {
+            font-size: 1.5rem;
+            padding: 1rem 3rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(66, 85, 255, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .countdown {
+            font-size: 8rem;
+            font-weight: 900;
+            color: var(--color-primary);
+            animation: popIn 0.5s;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-area {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tile {
+                height: 100px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
     <nav class="navbar">
         <a href="../index.html" class="logo">Fuizlet</a>
         <div class="nav-links">
-            <a id="back-to-set" href="set.html">Back to Set</a>
+            <a id="back-to-set" href="set.html">← Exit Game</a>
         </div>
     </nav>
 
-    <div class="container">
-        <div id="loading" style="text-align: center; padding: 2rem; color: var(--color-text-muted);">Loading...</div>
-        <div id="content" style="display: none;">
-            <div class="match-header">
-                <h2>Match</h2>
-                <div class="timer" id="timer">0.0s</div>
+    <div class="match-container">
+        <div id="loading" style="text-align: center; padding: 2rem;">Loading game...</div>
+
+        <div id="game-ui" style="display: none;">
+            <div class="game-header">
+                <div>
+                    <div style="font-size: 0.85rem; color: var(--color-text-muted);">Best Time</div>
+                    <div id="best-time" style="font-weight: 700;">--</div>
+                </div>
+                <div class="timer-badge" id="timer">0.0</div>
             </div>
 
-            <div class="match-grid" id="match-grid"></div>
+            <div class="grid-area" id="tile-grid"></div>
 
-            <div id="complete-message" style="display: none; text-align: center; padding: 2rem;">
-                <h2>🎉 Completed!</h2>
-                <p style="font-size: 1.5rem; margin: 1rem 0;">Your time: <strong id="final-time"></strong></p>
-                <a id="play-again" class="btn btn-outline" style="margin-right: 1rem;">Play Again</a>
-                <a id="back-btn" class="btn btn-primary">Back to Set</a>
+            <!-- Start Screen -->
+            <div id="start-overlay" class="overlay">
+                <h1 style="margin-bottom: 2rem; font-size: 2.5rem;">Ready to Match?</h1>
+                <p style="margin-bottom: 2rem; color: var(--color-text-muted);">Clear all tiles as fast as you can!</p>
+                <button id="start-btn" class="start-btn">Start Game</button>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-overlay" class="overlay" style="display: none;">
+                <h1 style="margin-bottom: 0.5rem; font-size: 2.5rem;">🎉 Awesome!</h1>
+                <div style="font-size: 4rem; font-weight: 800; color: var(--color-primary); margin-bottom: 2rem;"
+                    id="final-score">12.5s</div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary btn-large" onclick="location.reload()">Play Again</button>
+                    <a id="back-link" href="set.html" class="btn btn-outline btn-large">Back to Set</a>
+                </div>
+            </div>
+
+            <div id="countdown-overlay" class="overlay" style="display: none; background: transparent;">
+                <div class="countdown" id="countdown">3</div>
             </div>
         </div>
     </div>
@@ -46,103 +220,138 @@
             const setId = params.get('id');
             const set = await Fuizlet.Store.getSetById(setId);
 
-            if (!set) {
+            if (!set || !set.terms || set.terms.length === 0) {
                 window.location.href = 'sets.html';
                 return;
             }
 
             document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
+            document.getElementById('game-ui').style.display = 'block';
             document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-            document.getElementById('back-btn').href = 'set.html?id=' + setId;
-            document.getElementById('play-again').href = 'match.html?id=' + setId;
-            document.title = set.title + ' - Match';
+            document.getElementById('back-link').href = 'set.html?id=' + setId;
 
-            // Take first 6 terms for a 4x3 grid (12 tiles)
-            const gameTerms = (set.terms || []).slice(0, 6);
+            // Load Best Time
+            const bestTimeKey = `fuizlet_best_${setId}`;
+            const bestTime = localStorage.getItem(bestTimeKey);
+            document.getElementById('best-time').textContent = bestTime ? parseFloat(bestTime).toFixed(1) + 's' : '--';
 
-            // Create tiles: each term and its definition
-            let tiles = [];
-            gameTerms.forEach((t, i) => {
-                tiles.push({ id: i, type: 'term', text: t.term, pairId: i });
-                tiles.push({ id: i, type: 'def', text: t.definition, pairId: i });
-            });
-
-            tiles = Fuizlet.shuffleArray(tiles);
-
-            const grid = document.getElementById('match-grid');
-            const timerEl = document.getElementById('timer');
-
-            let startTime = null;
-            let timerInterval = null;
-            let selected = null;
+            let tilesItems = [];
+            let startTime = 0;
+            let timerInterval;
+            let selectedTile = null;
             let matchedCount = 0;
+            let totalPairs = 0;
 
-            function startTimer() {
+            function setupGame() {
+                // Determine difficulty (max 8 pairs = 16 tiles to fit 4x4 grid)
+                const maxPairs = 8;
+                const terms = Fuizlet.shuffleArray([...set.terms]).slice(0, maxPairs);
+                totalPairs = terms.length;
+
+                tilesItems = [];
+                terms.forEach((t, i) => {
+                    tilesItems.push({ id: `t-${i}`, text: t.term, pairId: i });
+                    tilesItems.push({ id: `d-${i}`, text: t.definition, pairId: i });
+                });
+
+                tilesItems = Fuizlet.shuffleArray(tilesItems);
+
+                const grid = document.getElementById('tile-grid');
+                grid.innerHTML = '';
+
+                tilesItems.forEach(item => {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.textContent = item.text;
+                    tile.dataset.pairId = item.pairId;
+                    tile.onclick = () => handleTileClick(tile);
+                    grid.appendChild(tile);
+                });
+            }
+
+            function handleTileClick(tile) {
+                if (tile.classList.contains('matched') || tile.classList.contains('selected')) return;
+
+                tile.classList.add('selected');
+
+                if (!selectedTile) {
+                    selectedTile = tile;
+                } else {
+                    // Check match
+                    const isMatch = selectedTile.dataset.pairId === tile.dataset.pairId;
+
+                    if (isMatch) {
+                        selectedTile.classList.add('matched');
+                        tile.classList.add('matched');
+                        selectedTile = null;
+                        matchedCount++;
+
+                        if (matchedCount === totalPairs) msgGameComplete();
+                    } else {
+                        // Incorrect
+                        const t1 = selectedTile;
+                        const t2 = tile;
+                        t1.classList.add('incorrect');
+                        t2.classList.add('incorrect');
+                        selectedTile = null;
+
+                        setTimeout(() => {
+                            t1.classList.remove('selected', 'incorrect');
+                            t2.classList.remove('selected', 'incorrect');
+                        }, 500);
+                    }
+                }
+            }
+
+            function startGame() {
+                document.getElementById('start-overlay').style.display = 'none';
+                const countEl = document.getElementById('countdown');
+                const overlay = document.getElementById('countdown-overlay');
+                overlay.style.display = 'flex';
+
+                let count = 3;
+                countEl.textContent = count;
+
+                const int = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countEl.textContent = count;
+                        // Trigger reflow to restart animation
+                        countEl.style.animation = 'none';
+                        countEl.offsetHeight;
+                        countEl.style.animation = 'popIn 0.5s';
+                    } else {
+                        clearInterval(int);
+                        overlay.style.display = 'none';
+                        beginTimer();
+                    }
+                }, 800);
+            }
+
+            function beginTimer() {
                 startTime = Date.now();
+                const timerEl = document.getElementById('timer');
+
                 timerInterval = setInterval(() => {
-                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                    timerEl.textContent = elapsed + 's';
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    timerEl.textContent = elapsed.toFixed(1);
                 }, 100);
             }
 
-            function stopTimer() {
+            function msgGameComplete() {
                 clearInterval(timerInterval);
+                const finalTime = document.getElementById('timer').textContent;
+                document.getElementById('result-overlay').style.display = 'flex';
+                document.getElementById('final-score').textContent = finalTime + 's';
+
+                // Save best match
+                if (!bestTime || parseFloat(finalTime) < parseFloat(bestTime)) {
+                    localStorage.setItem(bestTimeKey, finalTime);
+                }
             }
 
-            tiles.forEach((tile, index) => {
-                const el = document.createElement('div');
-                el.className = 'match-tile';
-                el.textContent = tile.text;
-                el.dataset.pairId = tile.pairId;
-                el.dataset.type = tile.type;
-                el.dataset.index = index;
-
-                el.addEventListener('click', function () {
-                    if (!startTime) startTimer();
-
-                    if (this.classList.contains('matched') || this.classList.contains('selected')) return;
-
-                    this.classList.add('selected');
-
-                    if (!selected) {
-                        selected = this;
-                    } else {
-                        // Check if same type (can't match term with term)
-                        if (selected.dataset.type === this.dataset.type) {
-                            selected.classList.remove('selected');
-                            this.classList.remove('selected');
-                            selected = null;
-                            return;
-                        }
-
-                        // Check for match
-                        if (selected.dataset.pairId === this.dataset.pairId) {
-                            selected.classList.add('matched');
-                            this.classList.add('matched');
-                            selected.classList.remove('selected');
-                            this.classList.remove('selected');
-                            matchedCount++;
-
-                            if (matchedCount === gameTerms.length) {
-                                stopTimer();
-                                document.getElementById('match-grid').style.display = 'none';
-                                document.getElementById('complete-message').style.display = 'block';
-                                document.getElementById('final-time').textContent = timerEl.textContent;
-                            }
-                        } else {
-                            const prev = selected;
-                            setTimeout(() => {
-                                prev.classList.remove('selected');
-                                this.classList.remove('selected');
-                            }, 500);
-                        }
-                        selected = null;
-                    }
-                });
-
-                grid.appendChild(el);
-            });
+            setupGame();
+            document.getElementById('start-btn').addEventListener('click', startGame);
         })();
     </script>
 </body>
