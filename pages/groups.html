@@ -4,47 +4,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Folders - Fuizlet</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Groups - Fuizlet</title>
+    <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .folders-grid {
+        .groups-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
         }
 
-        .folder-card {
+        .group-card {
             background: var(--color-card);
             border-radius: var(--radius);
             padding: 1.5rem;
             box-shadow: var(--shadow);
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            border-left: 4px solid #f59e0b;
+            border-left: 4px solid #8b5cf6;
         }
 
-        .folder-card:hover {
+        .group-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .folder-card h3 {
+        .group-card h3 {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             margin-bottom: 0.5rem;
         }
 
-        .folder-card p {
+        .group-card p {
             color: var(--color-text-muted);
             font-size: 0.9rem;
         }
 
-        .set-count {
+        .group-meta {
+            display: flex;
+            gap: 1rem;
             margin-top: 1rem;
             font-size: 0.85rem;
-            color: #f59e0b;
+        }
+
+        .group-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .members-count {
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .sets-count {
+            color: var(--color-primary);
             font-weight: 600;
         }
 
@@ -52,6 +68,7 @@
             text-align: center;
             padding: 4rem 2rem;
             color: var(--color-text-muted);
+            grid-column: 1 / -1;
         }
 
         .empty-state h2 {
@@ -82,7 +99,6 @@
             border-radius: var(--radius);
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         }
 
         .modal h2 {
@@ -98,12 +114,25 @@
         .modal-actions .btn {
             flex: 1;
         }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header .page-title {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 
 <body>
     <nav class="navbar">
-        <a href="index.html" class="logo">Fuizlet</a>
+        <a href="../index.html" class="logo">Fuizlet</a>
         <div class="nav-links">
             <a href="sets.html">Sets</a>
             <a href="folders.html">Folders</a>
@@ -113,26 +142,31 @@
     </nav>
 
     <div class="container">
-        <div class="page-header"
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h1 class="page-title" style="margin-bottom: 0;">My Folders</h1>
-            <button class="btn btn-primary" id="create-folder-btn">+ New Folder</button>
+        <div class="page-header">
+            <h1 class="page-title">My Groups</h1>
+            <button class="btn btn-primary" id="create-group-btn">+ New Group</button>
         </div>
-        <div id="folders-container" class="folders-grid"></div>
+        <p style="margin-bottom: 2rem; color: var(--color-text-muted);">Groups let you organize study sets and invite
+            members to collaborate.</p>
+        <div id="groups-container" class="groups-grid"></div>
     </div>
 
-    <!-- Create Folder Modal -->
+    <!-- Create Group Modal -->
     <div class="modal-overlay" id="create-modal">
         <div class="modal">
-            <h2>Create Folder</h2>
-            <form id="create-folder-form">
+            <h2>Create Group</h2>
+            <form id="create-group-form">
                 <div class="form-group">
-                    <label for="folder-name">Folder Name</label>
-                    <input type="text" id="folder-name" placeholder="e.g., Biology Class" required>
+                    <label for="group-name">Group Name</label>
+                    <input type="text" id="group-name" placeholder="e.g., Biology Study Group" required>
                 </div>
                 <div class="form-group">
-                    <label for="folder-desc">Description (optional)</label>
-                    <input type="text" id="folder-desc" placeholder="Add a description...">
+                    <label for="group-desc">Description (optional)</label>
+                    <input type="text" id="group-desc" placeholder="What's this group for?">
+                </div>
+                <div class="form-group">
+                    <label for="group-school">School/Organization (optional)</label>
+                    <input type="text" id="group-school" placeholder="e.g., City High School">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-outline" id="cancel-btn">Cancel</button>
@@ -142,38 +176,44 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="../js/app.js"></script>
     <script>
-        const container = document.getElementById('folders-container');
+        const container = document.getElementById('groups-container');
         const modal = document.getElementById('create-modal');
-        const createBtn = document.getElementById('create-folder-btn');
+        const createBtn = document.getElementById('create-group-btn');
         const cancelBtn = document.getElementById('cancel-btn');
-        const form = document.getElementById('create-folder-form');
+        const form = document.getElementById('create-group-form');
 
-        function renderFolders() {
-            const folders = Fuizlet.Store.getFolders();
+        const currentUser = Fuizlet.Store.getCurrentUser();
 
-            if (folders.length === 0) {
+        function renderGroups() {
+            const groups = Fuizlet.Store.getGroups();
+
+            if (groups.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <h2>No folders yet</h2>
-                        <p>Create folders to organize your study sets!</p>
+                    <div class="empty-state">
+                        <h2>No groups yet</h2>
+                        <p>Create a group to collaborate with others on study sets!</p>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = '';
-            folders.forEach(folder => {
+            groups.forEach(group => {
                 const card = document.createElement('div');
-                card.className = 'folder-card';
+                card.className = 'group-card';
                 card.innerHTML = `
-                    <h3>📁 ${folder.name}</h3>
-                    <p>${folder.description || 'No description'}</p>
-                    <div class="set-count">${folder.setIds.length} sets</div>
+                    <h3>👥 ${group.name}</h3>
+                    <p>${group.description || 'No description'}</p>
+                    ${group.school ? `<p style="font-size: 0.85rem; color: var(--color-text-muted);">🏫 ${group.school}</p>` : ''}
+                    <div class="group-meta">
+                        <span class="members-count">👤 ${group.members.length} members</span>
+                        <span class="sets-count">📚 ${group.setIds.length} sets</span>
+                    </div>
                 `;
                 card.addEventListener('click', () => {
-                    window.location.href = 'folder.html?id=' + folder.id;
+                    window.location.href = 'group.html?id=' + group.id;
                 });
                 container.appendChild(card);
             });
@@ -193,24 +233,28 @@
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            const name = document.getElementById('folder-name').value.trim();
-            const description = document.getElementById('folder-desc').value.trim();
+            const name = document.getElementById('group-name').value.trim();
+            const description = document.getElementById('group-desc').value.trim();
+            const school = document.getElementById('group-school').value.trim();
 
-            const folder = {
+            const group = {
                 id: Fuizlet.generateId(),
                 name,
                 description,
+                school,
+                members: [currentUser ? currentUser.username : 'You'],
                 setIds: [],
+                createdBy: currentUser ? currentUser.username : 'You',
                 createdAt: new Date().toISOString()
             };
 
-            Fuizlet.Store.addFolder(folder);
+            Fuizlet.Store.addGroup(group);
             modal.classList.remove('active');
             form.reset();
-            renderFolders();
+            renderGroups();
         });
 
-        renderFolders();
+        renderGroups();
     </script>
 </body>
 

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study Set - Fuizlet</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .set-header {
@@ -89,7 +89,7 @@
 
 <body>
     <nav class="navbar">
-        <a href="index.html" class="logo">Fuizlet</a>
+        <a href="../index.html" class="logo">Fuizlet</a>
         <div class="nav-links">
             <a href="sets.html">My Sets</a>
             <a href="create.html" class="btn btn-outline">+ Create</a>
@@ -115,7 +115,7 @@
         <button id="delete-set-btn" class="delete-set-btn">Delete this set</button>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="../js/app.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const setId = params.get('id');
