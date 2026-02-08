@@ -28,8 +28,8 @@ function shuffleArray(array) {
 // CHECK IF SUPABASE IS AVAILABLE
 // ========================================
 function getSupabase() {
-    if (window.SupabaseConfig && window.SupabaseConfig.isConfigured() && window.SupabaseConfig.client) {
-        return window.SupabaseConfig.client;
+    if (window.SupabaseConfig && window.SupabaseConfig.isConfigured() && window.SupabaseConfig.getClient) {
+        return window.SupabaseConfig.getClient();
     }
     return null;
 }

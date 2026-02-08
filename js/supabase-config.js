@@ -10,17 +10,23 @@ const isSupabaseConfigured = () => {
     return SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
 };
 
-// Initialize Supabase client (loaded from CDN in HTML)
-let supabase = null;
+// Lazy initialization - create client only when needed
+let _supabaseClient = null;
 
-if (typeof window !== 'undefined' && window.supabase && isSupabaseConfigured()) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
+const getSupabaseClient = () => {
+    if (_supabaseClient) return _supabaseClient;
+
+    // Check if Supabase library is loaded
+    if (typeof window !== 'undefined' && window.supabase && isSupabaseConfigured()) {
+        _supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return _supabaseClient;
+};
 
 // Export for use
 window.SupabaseConfig = {
     url: SUPABASE_URL,
     key: SUPABASE_ANON_KEY,
-    client: supabase,
+    getClient: getSupabaseClient,
     isConfigured: isSupabaseConfigured
 };
