@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .learn-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+
+        .question-card {
+            background: var(--color-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .question-card h2 {
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option-btn {
+            padding: 1rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            background: white;
+            text-align: left;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            border-color: var(--color-primary);
+        }
+
+        .option-btn.correct {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .option-btn.wrong {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s;
+        }
+
+        .result-card {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .result-card h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .score {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a id="back-to-set" href="set.html">Back to Set</a>
+        </div>
+    </nav>
+
+    <div class="learn-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p id="progress-text" style="margin-bottom: 1rem; color: var(--color-text-muted);">Question 1 of X</p>
+
+        <div id="question-area"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const setId = params.get('id');
+        const set = Fuizlet.Store.getSetById(setId);
+
+        if (!set) window.location.href = 'sets.html';
+
+        document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+        document.title = set.title + ' - Learn';
+
+        const terms = Fuizlet.shuffleArray([...set.terms]);
+        let currentIndex = 0;
+        let score = 0;
+
+        const questionArea = document.getElementById('question-area');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        function updateProgress() {
+            const pct = ((currentIndex) / terms.length) * 100;
+            progressFill.style.width = pct + '%';
+            progressText.textContent = `Question ${currentIndex + 1} of ${terms.length}`;
+        }
+
+        function generateOptions(correctAnswer) {
+            const options = [correctAnswer];
+            const otherDefs = set.terms
+                .map(t => t.definition)
+                .filter(d => d !== correctAnswer);
+            const shuffled = Fuizlet.shuffleArray(otherDefs);
+            options.push(...shuffled.slice(0, 3));
+            return Fuizlet.shuffleArray(options);
+        }
+
+        function showQuestion() {
+            if (currentIndex >= terms.length) {
+                showResults();
+                return;
+            }
+
+            updateProgress();
+            const term = terms[currentIndex];
+            const options = generateOptions(term.definition);
+
+            questionArea.innerHTML = `
+                <div class="question-card">
+                    <h2>${term.term}</h2>
+                    <div class="options" id="options">
+                        ${options.map((opt, i) => `
+                            <button class="option-btn" data-answer="${opt}">${opt}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const selected = this.dataset.answer;
+                    const correct = term.definition;
+
+                    document.querySelectorAll('.option-btn').forEach(b => {
+                        b.disabled = true;
+                        if (b.dataset.answer === correct) {
+                            b.classList.add('correct');
+                        }
+                    });
+
+                    if (selected === correct) {
+                        score++;
+                    } else {
+                        this.classList.add('wrong');
+                    }
+
+                    setTimeout(() => {
+                        currentIndex++;
+                        showQuestion();
+                    }, 1000);
+                });
+            });
+        }
+
+        function showResults() {
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Complete!';
+
+            const pct = Math.round((score / terms.length) * 100);
+            questionArea.innerHTML = `
+                <div class="question-card result-card">
+                    <h2>Great job!</h2>
+                    <div class="score">${pct}%</div>
+                    <p style="margin: 1rem 0; color: var(--color-text-muted);">You got ${score} out of ${terms.length} correct</p>
+                    <a href="set.html?id=${setId}" class="btn btn-primary">Back to Set</a>
+                </div>
+            `;
+        }
+
+        showQuestion();
+    </script>
+</body>
+
+</html>

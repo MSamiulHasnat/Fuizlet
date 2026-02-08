@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Game - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a id="back-to-set" href="set.html">Back to Set</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="match-header">
+            <h2>Match</h2>
+            <div class="timer" id="timer">0.0s</div>
+        </div>
+
+        <div class="match-grid" id="match-grid">
+            <!-- Tiles will be rendered here -->
+        </div>
+
+        <div id="complete-message" style="display: none; text-align: center; padding: 2rem;">
+            <h2>🎉 Completed!</h2>
+            <p style="font-size: 1.5rem; margin: 1rem 0;">Your time: <strong id="final-time"></strong></p>
+            <a id="play-again" class="btn btn-outline" style="margin-right: 1rem;">Play Again</a>
+            <a id="back-btn" class="btn btn-primary">Back to Set</a>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const setId = params.get('id');
+        const set = Fuizlet.Store.getSetById(setId);
+
+        if (!set) window.location.href = 'sets.html';
+
+        document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+        document.getElementById('back-btn').href = 'set.html?id=' + setId;
+        document.getElementById('play-again').href = 'match.html?id=' + setId;
+        document.title = set.title + ' - Match';
+
+        // Take first 6 terms for a 4x3 grid (12 tiles)
+        const gameTerms = set.terms.slice(0, 6);
+
+        // Create tiles: each term and its definition
+        let tiles = [];
+        gameTerms.forEach((t, i) => {
+            tiles.push({ id: i, type: 'term', text: t.term, pairId: i });
+            tiles.push({ id: i, type: 'def', text: t.definition, pairId: i });
+        });
+
+        tiles = Fuizlet.shuffleArray(tiles);
+
+        const grid = document.getElementById('match-grid');
+        const timerEl = document.getElementById('timer');
+
+        let startTime = null;
+        let timerInterval = null;
+        let selected = null;
+        let matchedCount = 0;
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                timerEl.textContent = elapsed + 's';
+            }, 100);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        tiles.forEach((tile, index) => {
+            const el = document.createElement('div');
+            el.className = 'match-tile';
+            el.textContent = tile.text;
+            el.dataset.pairId = tile.pairId;
+            el.dataset.type = tile.type;
+            el.dataset.index = index;
+
+            el.addEventListener('click', function () {
+                if (!startTime) startTimer();
+
+                if (this.classList.contains('matched') || this.classList.contains('selected')) return;
+
+                this.classList.add('selected');
+
+                if (!selected) {
+                    selected = this;
+                } else {
+                    // Check if same type (can't match term with term)
+                    if (selected.dataset.type === this.dataset.type) {
+                        selected.classList.remove('selected');
+                        this.classList.remove('selected');
+                        selected = null;
+                        return;
+                    }
+
+                    // Check for match
+                    if (selected.dataset.pairId === this.dataset.pairId) {
+                        selected.classList.add('matched');
+                        this.classList.add('matched');
+                        selected.classList.remove('selected');
+                        this.classList.remove('selected');
+                        matchedCount++;
+
+                        if (matchedCount === gameTerms.length) {
+                            stopTimer();
+                            document.getElementById('match-grid').style.display = 'none';
+                            document.getElementById('complete-message').style.display = 'block';
+                            document.getElementById('final-time').textContent = timerEl.textContent;
+                        }
+                    } else {
+                        const prev = selected;
+                        setTimeout(() => {
+                            prev.classList.remove('selected');
+                            this.classList.remove('selected');
+                        }, 500);
+                    }
+                    selected = null;
+                }
+            });
+
+            grid.appendChild(el);
+        });
+    </script>
+</body>
+
+</html>

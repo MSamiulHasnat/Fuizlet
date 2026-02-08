@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Set - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a href="sets.html">My Sets</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Create a new study set</h1>
+
+        <form id="create-set-form">
+            <div class="form-group">
+                <label for="set-title">Title</label>
+                <input type="text" id="set-title" placeholder='Enter a title, like "World Capitals"' required>
+            </div>
+
+            <div class="form-group">
+                <label for="set-description">Description (optional)</label>
+                <textarea id="set-description" rows="2" placeholder="Add a description..."></textarea>
+            </div>
+
+            <h3 class="terms-header">Terms</h3>
+            <div id="term-list" class="card-list"></div>
+
+            <button type="button" id="add-term-btn" class="btn btn-outline add-term-btn">+ Add Term</button>
+
+            <hr class="form-divider">
+
+            <button type="submit" class="btn btn-primary btn-large" id="submit-btn">Create Set</button>
+        </form>
+    </div>
+
+    <style>
+        .terms-header {
+            margin-bottom: 1rem;
+        }
+
+        .add-term-btn {
+            margin-top: 1rem;
+        }
+
+        .form-divider {
+            margin: 2rem 0;
+            border: none;
+            border-top: 1px solid var(--color-border);
+        }
+    </style>
+
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        const termList = document.getElementById('term-list');
+        const addTermBtn = document.getElementById('add-term-btn');
+        const form = document.getElementById('create-set-form');
+
+        let termCount = 0;
+
+        function createTermCard(term = '', definition = '') {
+            termCount++;
+            const card = document.createElement('div');
+            card.className = 'term-card';
+            card.innerHTML = `
+                <input type="text" placeholder="Term" class="term-input" value="${term}">
+                <input type="text" placeholder="Definition" class="def-input" value="${definition}">
+                <button type="button" class="delete-btn" title="Delete">&times;</button>
+            `;
+            card.querySelector('.delete-btn').addEventListener('click', () => card.remove());
+            termList.appendChild(card);
+        }
+
+        // Add initial 2 empty terms
+        createTermCard();
+        createTermCard();
+
+        addTermBtn.addEventListener('click', () => createTermCard());
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('set-title').value.trim();
+            const description = document.getElementById('set-description').value.trim();
+            const submitBtn = document.getElementById('submit-btn');
+
+            const termCards = document.querySelectorAll('.term-card');
+            const terms = [];
+
+            termCards.forEach(card => {
+                const term = card.querySelector('.term-input').value.trim();
+                const def = card.querySelector('.def-input').value.trim();
+                if (term && def) {
+                    terms.push({ term, definition: def });
+                }
+            });
+
+            if (terms.length < 2) {
+                alert('Please add at least 2 terms with definitions.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating...';
+
+            const newSet = {
+                id: Fuizlet.generateId(),
+                title,
+                description,
+                terms,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                const result = await Fuizlet.Store.addSet(newSet);
+                const setId = result?.id || newSet.id;
+                window.location.href = 'set.html?id=' + setId;
+            } catch (err) {
+                console.error(err);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Create Set';
+                alert('Failed to create set. Please try again.');
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .group-header {
+            margin-bottom: 2rem;
+        }
+
+        .group-header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .group-header .school {
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+        }
+
+        .group-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section h2 {
+            font-size: 1.25rem;
+        }
+
+        .members-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .member-badge {
+            background: #f3e8ff;
+            color: #7c3aed;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .sets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .set-card {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            box-shadow: var(--shadow);
+        }
+
+        .set-card h3 {
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .set-card p {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+        }
+
+        .set-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .empty-message {
+            color: var(--color-text-muted);
+            padding: 1rem;
+            text-align: center;
+            background: var(--color-card);
+            border-radius: var(--radius);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--color-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+        }
+
+        .set-option,
+        .invite-input {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .set-option:hover {
+            border-color: var(--color-primary);
+            background: #f0f4ff;
+        }
+
+        .set-option.selected {
+            border-color: var(--color-primary);
+            background: #e0e7ff;
+        }
+
+        .small-btn {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .delete-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a href="groups.html">← Back to Groups</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="group-header" id="group-header"></div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>👥 Members</h2>
+                <button class="btn btn-outline small-btn" id="invite-btn">+ Invite</button>
+            </div>
+            <div class="members-list" id="members-list"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>📚 Study Sets</h2>
+                <button class="btn btn-primary small-btn" id="add-sets-btn">+ Add Sets</button>
+            </div>
+            <div class="sets-grid" id="sets-container"></div>
+        </div>
+
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
+        <button id="delete-group-btn" class="delete-btn">Delete Group</button>
+    </div>
+
+    <!-- Add Sets Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <h2>Add Sets to Group</h2>
+            <div id="available-sets"></div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-outline" id="cancel-add">Cancel</button>
+                <button class="btn btn-primary" id="confirm-add">Add Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Member Modal -->
+    <div class="modal-overlay" id="invite-modal">
+        <div class="modal">
+            <h2>Invite Members</h2>
+
+            <!-- Invite Link Section -->
+            <div class="invite-section">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📎 Share Invite Link</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="invite-link" readonly style="flex: 1; background: #f5f5f5; cursor: text;">
+                    <button class="btn btn-outline" id="copy-link-btn" style="white-space: nowrap;">Copy</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem;">Anyone with this link
+                    can join the group</p>
+            </div>
+
+            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
+
+            <!-- Email Invite Section -->
+            <div class="invite-section">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📧 Invite by Email</label>
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <input type="email" id="invite-email" placeholder="Enter email address">
+                </div>
+                <button class="btn btn-primary" id="send-email-btn" style="width: 100%;">Send Invitation</button>
+                <p id="email-status" style="font-size: 0.85rem; margin-top: 0.5rem; display: none;"></p>
+            </div>
+
+            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
+
+            <!-- Username Invite Section -->
+            <div class="invite-section">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">👤 Add by Username</label>
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <input type="text" id="invite-username" placeholder="Enter username">
+                </div>
+                <button class="btn btn-outline" id="confirm-invite" style="width: 100%;">Add Member</button>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button class="btn btn-outline" id="cancel-invite" style="width: 100%;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const groupId = params.get('id');
+
+        if (!groupId) window.location.href = 'groups.html';
+
+        let group = Fuizlet.Store.getGroupById(groupId);
+        if (!group) window.location.href = 'groups.html';
+
+        const headerEl = document.getElementById('group-header');
+        const membersList = document.getElementById('members-list');
+        const setsContainer = document.getElementById('sets-container');
+        const addModal = document.getElementById('add-modal');
+        const inviteModal = document.getElementById('invite-modal');
+        const availableSetsEl = document.getElementById('available-sets');
+
+        let selectedSets = [];
+
+        function render() {
+            group = Fuizlet.Store.getGroupById(groupId);
+            document.title = group.name + ' - Fuizlet';
+
+            headerEl.innerHTML = `
+                <h1>👥 ${group.name}</h1>
+                <p>${group.description || ''}</p>
+                ${group.school ? `<p class="school">🏫 ${group.school}</p>` : ''}
+            `;
+
+            // Members
+            membersList.innerHTML = group.members.map(m =>
+                `<span class="member-badge">${m}</span>`
+            ).join('');
+
+            // Sets
+            if (group.setIds.length === 0) {
+                setsContainer.innerHTML = '<div class="empty-message">No sets yet. Add some!</div>';
+            } else {
+                setsContainer.innerHTML = '';
+                group.setIds.forEach(setId => {
+                    const set = Fuizlet.Store.getSetById(setId);
+                    if (!set) return;
+                    const card = document.createElement('div');
+                    card.className = 'set-card';
+                    card.innerHTML = `
+                        <h3>${set.title}</h3>
+                        <p>${set.terms.length} terms</p>
+                        <div class="set-card-actions">
+                            <a href="set.html?id=${set.id}" class="btn btn-outline small-btn">Study</a>
+                        </div>
+                    `;
+                    setsContainer.appendChild(card);
+                });
+            }
+        }
+
+        // Add Sets
+        document.getElementById('add-sets-btn').addEventListener('click', () => {
+            selectedSets = [];
+            const allSets = Fuizlet.Store.getSets();
+            const setsNotInGroup = allSets.filter(s => !group.setIds.includes(s.id));
+
+            if (setsNotInGroup.length === 0) {
+                availableSetsEl.innerHTML = '<p style="color: var(--color-text-muted);">All sets are already in this group.</p>';
+            } else {
+                availableSetsEl.innerHTML = setsNotInGroup.map(s => `
+                    <div class="set-option" data-id="${s.id}">
+                        <strong>${s.title}</strong> - ${s.terms.length} terms
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.set-option').forEach(opt => {
+                    opt.addEventListener('click', () => {
+                        opt.classList.toggle('selected');
+                        const id = opt.dataset.id;
+                        if (selectedSets.includes(id)) {
+                            selectedSets = selectedSets.filter(x => x !== id);
+                        } else {
+                            selectedSets.push(id);
+                        }
+                    });
+                });
+            }
+            addModal.classList.add('active');
+        });
+
+        document.getElementById('cancel-add').addEventListener('click', () => addModal.classList.remove('active'));
+        document.getElementById('confirm-add').addEventListener('click', () => {
+            selectedSets.forEach(setId => Fuizlet.Store.addSetToGroup(groupId, setId));
+            addModal.classList.remove('active');
+            render();
+        });
+        addModal.addEventListener('click', (e) => { if (e.target === addModal) addModal.classList.remove('active'); });
+
+        // Invite Member
+        document.getElementById('invite-btn').addEventListener('click', () => {
+            // Generate invite link
+            const baseUrl = window.location.origin + window.location.pathname.replace('group.html', '');
+            const inviteLink = baseUrl + 'join.html?group=' + groupId;
+            document.getElementById('invite-link').value = inviteLink;
+            inviteModal.classList.add('active');
+        });
+
+        // Copy Link
+        document.getElementById('copy-link-btn').addEventListener('click', () => {
+            const linkInput = document.getElementById('invite-link');
+            linkInput.select();
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const btn = document.getElementById('copy-link-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            });
+        });
+
+        // Send Email (simulated - opens mail client)
+        document.getElementById('send-email-btn').addEventListener('click', () => {
+            const email = document.getElementById('invite-email').value.trim();
+            const statusEl = document.getElementById('email-status');
+
+            if (!email || !email.includes('@')) {
+                statusEl.textContent = '❌ Please enter a valid email address';
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#dc2626';
+                return;
+            }
+
+            const inviteLink = document.getElementById('invite-link').value;
+            const subject = encodeURIComponent('Join my group on Fuizlet: ' + group.name);
+            const body = encodeURIComponent(
+                `Hi!\n\nI'd like to invite you to join my study group "${group.name}" on Fuizlet.\n\nClick this link to join:\n${inviteLink}\n\nSee you there!`
+            );
+
+            // Open email client
+            window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+
+            statusEl.textContent = '✅ Opening your email client...';
+            statusEl.style.display = 'block';
+            statusEl.style.color = '#10b981';
+            document.getElementById('invite-email').value = '';
+        });
+
+        // Add by Username
+        document.getElementById('cancel-invite').addEventListener('click', () => inviteModal.classList.remove('active'));
+        document.getElementById('confirm-invite').addEventListener('click', () => {
+            const username = document.getElementById('invite-username').value.trim();
+            if (username) {
+                Fuizlet.Store.addMemberToGroup(groupId, username);
+                document.getElementById('invite-username').value = '';
+                render();
+                // Show success briefly
+                alert('✅ ' + username + ' added to the group!');
+            }
+        });
+        inviteModal.addEventListener('click', (e) => { if (e.target === inviteModal) inviteModal.classList.remove('active'); });
+
+        // Delete Group
+        document.getElementById('delete-group-btn').addEventListener('click', () => {
+            if (confirm('Delete this group?')) {
+                Fuizlet.Store.deleteGroup(groupId);
+                window.location.href = 'groups.html';
+            }
+        });
+
+        render();
+    </script>
+</body>
+
+</html>

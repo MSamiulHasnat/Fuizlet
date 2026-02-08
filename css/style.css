@@ -1,0 +1,356 @@
+/* ===== CSS Variables (Design Tokens) ===== */
+:root {
+    --color-primary: #4255ff;
+    --color-primary-hover: #3345e0;
+    --color-background: #f6f7fb;
+    --color-card: #ffffff;
+    --color-text: #1a1d28;
+    --color-text-muted: #6b7280;
+    --color-border: #e5e7eb;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --radius: 12px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Reset & Base ===== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ===== Navbar ===== */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--color-card);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--color-border);
+    color: var(--color-text);
+}
+
+.btn-outline:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+/* ===== Hero Section ===== */
+.hero {
+    text-align: center;
+    padding: 5rem 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.hero h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.hero .subtitle {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+}
+
+/* ===== Features Section ===== */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background: var(--color-card);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.feature-card .icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+}
+
+/* ===== Footer ===== */
+footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* ===== Form Styles ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* ===== Card List (for terms) ===== */
+.card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.term-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    background: var(--color-card);
+    padding: 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    align-items: center;
+}
+
+.term-card input {
+    padding: 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.term-card .delete-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #ef4444;
+    padding: 0.5rem;
+}
+
+/* ===== Container ===== */
+.container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+.page-title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* ===== Flashcard Viewer ===== */
+.flashcard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 3rem 1rem;
+}
+
+.flashcard {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flashcard.flipped .flashcard-inner {
+    transform: rotateY(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+    text-align: center;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.flashcard-front {
+    background: var(--color-card);
+    border: 2px solid var(--color-primary);
+}
+
+.flashcard-back {
+    background: var(--color-primary);
+    color: white;
+    transform: rotateY(180deg);
+}
+
+.flashcard-controls {
+    display: flex;
+    gap: 1rem;
+}
+
+.flashcard-controls button {
+    padding: 0.8rem 1.5rem;
+}
+
+.progress-text {
+    color: var(--color-text-muted);
+}
+
+/* ===== Match Game ===== */
+.match-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.match-tile {
+    background: var(--color-card);
+    border: 2px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    font-size: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.match-tile:hover {
+    border-color: var(--color-primary);
+}
+
+.match-tile.selected {
+    border-color: var(--color-primary);
+    background: #eef2ff;
+}
+
+.match-tile.matched {
+    background: #d1fae5;
+    border-color: #10b981;
+    pointer-events: none;
+}
+
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 800px;
+    margin: 0 auto 1rem;
+    padding: 0 1rem;
+}
+
+.timer {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}

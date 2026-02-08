@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sets - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .sets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .set-card {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .set-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .set-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .set-card p {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .term-count {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--color-text-muted);
+            grid-column: 1 / -1;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 1rem;
+            color: var(--color-text);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-header .page-title {
+            margin-bottom: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+
+        .logout-btn {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            background: transparent;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a href="sets.html">Sets</a>
+            <a href="folders.html">Folders</a>
+            <a href="groups.html">Groups</a>
+            <a href="create.html" class="btn btn-primary">+ Create</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">My Study Sets</h1>
+            <div class="user-info" id="user-info"></div>
+        </div>
+        <div id="sets-container" class="sets-grid">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script src="js/supabase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        (async () => {
+            const container = document.getElementById('sets-container');
+            const userInfo = document.getElementById('user-info');
+
+            // Show user info
+            const user = await Fuizlet.Store.getCurrentUser();
+            if (user) {
+                const displayName = user.user_metadata?.username || user.email || user.username || 'User';
+                userInfo.innerHTML = `
+                    <span>👤 ${displayName}</span>
+                    <button class="logout-btn" id="logout-btn">Log Out</button>
+                `;
+                document.getElementById('logout-btn').addEventListener('click', async () => {
+                    await Fuizlet.Store.logout();
+                    window.location.href = 'login.html';
+                });
+            }
+
+            // Load sets
+            const sets = await Fuizlet.Store.getSets();
+
+            if (sets.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No study sets yet</h2>
+                        <p>Create your first set to start studying!</p>
+                        <a href="create.html" class="btn btn-primary" style="margin-top: 1rem;">Create Set</a>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+                sets.forEach(set => {
+                    const card = document.createElement('div');
+                    card.className = 'set-card';
+                    card.innerHTML = `
+                        <h3>${set.title}</h3>
+                        <p>${set.description || 'No description'}</p>
+                        <div class="term-count">${(set.terms || []).length} terms</div>
+                    `;
+                    card.addEventListener('click', () => {
+                        window.location.href = 'set.html?id=' + set.id;
+                    });
+                    container.appendChild(card);
+                });
+            }
+        })();
+    </script>
+</body>
+
+</html>

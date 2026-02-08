@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .test-container {
+            max-width: 700px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+
+        .test-question {
+            background: var(--color-card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .test-question label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+
+        .test-question input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .test-question input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .test-question.correct input {
+            border-color: #10b981;
+            background: #d1fae5;
+        }
+
+        .test-question.wrong input {
+            border-color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .answer-feedback {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .answer-feedback.correct {
+            color: #10b981;
+        }
+
+        .answer-feedback.wrong {
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a id="back-to-set" href="set.html">Back to Set</a>
+        </div>
+    </nav>
+
+    <div class="test-container">
+        <h1 class="page-title">Written Test</h1>
+        <p style="margin-bottom: 2rem; color: var(--color-text-muted);">Type the definition for each term</p>
+
+        <form id="test-form">
+            <div id="questions"></div>
+            <button type="submit" class="btn btn-primary btn-large" id="submit-btn">Submit Test</button>
+        </form>
+
+        <div id="results" style="display: none; text-align: center; padding: 2rem;">
+            <h2 id="result-title"></h2>
+            <p id="result-score"
+                style="font-size: 2rem; font-weight: 700; color: var(--color-primary); margin: 1rem 0;"></p>
+            <a id="retry-btn" class="btn btn-outline" style="margin-right: 1rem;">Try Again</a>
+            <a id="back-btn" class="btn btn-primary">Back to Set</a>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const setId = params.get('id');
+        const set = Fuizlet.Store.getSetById(setId);
+
+        if (!set) window.location.href = 'sets.html';
+
+        document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+        document.getElementById('back-btn').href = 'set.html?id=' + setId;
+        document.getElementById('retry-btn').href = 'test.html?id=' + setId;
+        document.title = set.title + ' - Test';
+
+        const terms = Fuizlet.shuffleArray([...set.terms]);
+        const questionsDiv = document.getElementById('questions');
+
+        terms.forEach((t, i) => {
+            const q = document.createElement('div');
+            q.className = 'test-question';
+            q.dataset.index = i;
+            q.innerHTML = `
+                <label>${i + 1}. ${t.term}</label>
+                <input type="text" name="answer-${i}" placeholder="Type your answer..." autocomplete="off">
+            `;
+            questionsDiv.appendChild(q);
+        });
+
+        document.getElementById('test-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            let score = 0;
+
+            terms.forEach((t, i) => {
+                const questionEl = document.querySelector(`.test-question[data-index="${i}"]`);
+                const input = questionEl.querySelector('input');
+                const userAnswer = input.value.trim().toLowerCase();
+                const correctAnswer = t.definition.toLowerCase();
+
+                // Simple matching (could add fuzzy later)
+                if (userAnswer === correctAnswer) {
+                    score++;
+                    questionEl.classList.add('correct');
+                    questionEl.insertAdjacentHTML('beforeend', '<p class="answer-feedback correct">✓ Correct!</p>');
+                } else {
+                    questionEl.classList.add('wrong');
+                    questionEl.insertAdjacentHTML('beforeend', `<p class="answer-feedback wrong">✗ Correct answer: ${t.definition}</p>`);
+                }
+                input.disabled = true;
+            });
+
+            document.getElementById('submit-btn').style.display = 'none';
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+
+            const pct = Math.round((score / terms.length) * 100);
+            document.getElementById('result-title').textContent = pct >= 70 ? 'Great job!' : 'Keep practicing!';
+            document.getElementById('result-score').textContent = `${score}/${terms.length} (${pct}%)`;
+        });
+    </script>
+</body>
+
+</html>

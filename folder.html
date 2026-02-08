@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folder - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .folder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .folder-header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .sets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .set-card {
+            background: var(--color-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .set-card h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        .set-card p {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .set-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .remove-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--color-text-muted);
+            grid-column: 1 / -1;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--color-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+        }
+
+        .set-option {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .set-option:hover {
+            border-color: var(--color-primary);
+            background: #f0f4ff;
+        }
+
+        .set-option.selected {
+            border-color: var(--color-primary);
+            background: #e0e7ff;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a href="folders.html">← Back to Folders</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="folder-header" id="folder-header"></div>
+        <div id="sets-container" class="sets-grid"></div>
+    </div>
+
+    <!-- Add Sets Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <h2>Add Sets to Folder</h2>
+            <p style="margin-bottom: 1rem; color: var(--color-text-muted);">Select sets to add:</p>
+            <div id="available-sets"></div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-outline" id="cancel-add">Cancel</button>
+                <button class="btn btn-primary" id="confirm-add">Add Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const folderId = params.get('id');
+
+        if (!folderId) window.location.href = 'folders.html';
+
+        let folder = Fuizlet.Store.getFolderById(folderId);
+        if (!folder) window.location.href = 'folders.html';
+
+        const headerEl = document.getElementById('folder-header');
+        const setsContainer = document.getElementById('sets-container');
+        const addModal = document.getElementById('add-modal');
+        const availableSetsEl = document.getElementById('available-sets');
+
+        let selectedSets = [];
+
+        function render() {
+            folder = Fuizlet.Store.getFolderById(folderId);
+            document.title = folder.name + ' - Fuizlet';
+
+            headerEl.innerHTML = `
+                <div>
+                    <h1>📁 ${folder.name}</h1>
+                    <p style="color: var(--color-text-muted);">${folder.description || ''}</p>
+                </div>
+                <div class="folder-actions">
+                    <button class="btn btn-primary" id="add-sets-btn">+ Add Sets</button>
+                    <button class="btn btn-outline" id="delete-folder-btn" style="color: #dc2626;">Delete Folder</button>
+                </div>
+            `;
+
+            document.getElementById('add-sets-btn').addEventListener('click', openAddModal);
+            document.getElementById('delete-folder-btn').addEventListener('click', deleteFolder);
+
+            // Render sets in folder
+            if (folder.setIds.length === 0) {
+                setsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>No sets in this folder yet. Click "Add Sets" to add some!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            setsContainer.innerHTML = '';
+            folder.setIds.forEach(setId => {
+                const set = Fuizlet.Store.getSetById(setId);
+                if (!set) return;
+
+                const card = document.createElement('div');
+                card.className = 'set-card';
+                card.innerHTML = `
+                    <h3>${set.title}</h3>
+                    <p>${set.terms.length} terms</p>
+                    <div class="set-card-actions">
+                        <a href="set.html?id=${set.id}" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">Study</a>
+                        <button class="remove-btn" data-id="${set.id}">Remove</button>
+                    </div>
+                `;
+                setsContainer.appendChild(card);
+            });
+
+            document.querySelectorAll('.remove-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    Fuizlet.Store.removeSetFromFolder(folderId, btn.dataset.id);
+                    render();
+                });
+            });
+        }
+
+        function openAddModal() {
+            selectedSets = [];
+            const allSets = Fuizlet.Store.getSets();
+            const setsNotInFolder = allSets.filter(s => !folder.setIds.includes(s.id));
+
+            if (setsNotInFolder.length === 0) {
+                availableSetsEl.innerHTML = '<p style="color: var(--color-text-muted);">All your sets are already in this folder!</p>';
+            } else {
+                availableSetsEl.innerHTML = setsNotInFolder.map(s => `
+                    <div class="set-option" data-id="${s.id}">
+                        <strong>${s.title}</strong> - ${s.terms.length} terms
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.set-option').forEach(opt => {
+                    opt.addEventListener('click', () => {
+                        opt.classList.toggle('selected');
+                        const id = opt.dataset.id;
+                        if (selectedSets.includes(id)) {
+                            selectedSets = selectedSets.filter(x => x !== id);
+                        } else {
+                            selectedSets.push(id);
+                        }
+                    });
+                });
+            }
+
+            addModal.classList.add('active');
+        }
+
+        document.getElementById('cancel-add').addEventListener('click', () => {
+            addModal.classList.remove('active');
+        });
+
+        document.getElementById('confirm-add').addEventListener('click', () => {
+            selectedSets.forEach(setId => {
+                Fuizlet.Store.addSetToFolder(folderId, setId);
+            });
+            addModal.classList.remove('active');
+            render();
+        });
+
+        addModal.addEventListener('click', (e) => {
+            if (e.target === addModal) addModal.classList.remove('active');
+        });
+
+        function deleteFolder() {
+            if (confirm('Delete this folder? Sets inside will not be deleted.')) {
+                Fuizlet.Store.deleteFolder(folderId);
+                window.location.href = 'folders.html';
+            }
+        }
+
+        render();
+    </script>
+</body>
+
+</html>

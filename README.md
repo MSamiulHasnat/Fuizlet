@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fuizlet
 
-## Getting Started
+A Quizlet clone built with HTML, CSS, and JavaScript.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- 📚 Create and study flashcard sets
+- 🧠 Learn mode with multiple-choice questions
+- ✍️ Test mode with written answers
+- 🎮 Match game with timer
+- 📁 Organize sets into folders
+- 👥 Groups for collaborative studying
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick Start (Local Mode)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Just open `index.html` in your browser. Data is saved locally in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cloud Mode (Multi-User)
 
-## Learn More
+To enable cloud sync and multi-user support:
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a free account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Run the SQL in `supabase-schema.sql` in the Supabase SQL Editor
+4. Copy your Project URL and anon key
+5. Edit `js/supabase-config.js` and replace the placeholder values
+6. Deploy to GitHub Pages (see below)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy to GitHub Pages
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a GitHub repository
+2. Push this code to the repository
+3. Go to Settings → Pages
+4. Set Source to "Deploy from a branch" and select `main`
+5. Your site will be live at `https://yourusername.github.io/repository-name`
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- HTML5
+- CSS3 (vanilla, no frameworks)
+- Vanilla JavaScript
+- Supabase (optional, for cloud sync)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT

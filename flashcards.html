@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards - Fuizlet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">Fuizlet</a>
+        <div class="nav-links">
+            <a id="back-to-set" href="set.html">Back to Set</a>
+        </div>
+    </nav>
+
+    <div class="flashcard-container">
+        <p class="progress-text"><span id="current">1</span> / <span id="total">0</span></p>
+
+        <div class="flashcard" id="flashcard">
+            <div class="flashcard-inner">
+                <div class="flashcard-front" id="front">Term</div>
+                <div class="flashcard-back" id="back">Definition</div>
+            </div>
+        </div>
+
+        <div class="flashcard-controls">
+            <button class="btn btn-outline" id="prev-btn">← Previous</button>
+            <button class="btn btn-outline" id="flip-btn">Flip</button>
+            <button class="btn btn-primary" id="next-btn">Next →</button>
+        </div>
+
+        <p style="margin-top: 1rem; color: var(--color-text-muted); font-size: 0.9rem;">Click the card or press Space to
+            flip</p>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const setId = params.get('id');
+        const set = Fuizlet.Store.getSetById(setId);
+
+        if (!set) window.location.href = 'sets.html';
+
+        document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+        document.title = set.title + ' - Flashcards';
+
+        const terms = set.terms;
+        let currentIndex = 0;
+
+        const flashcard = document.getElementById('flashcard');
+        const frontEl = document.getElementById('front');
+        const backEl = document.getElementById('back');
+        const currentEl = document.getElementById('current');
+        const totalEl = document.getElementById('total');
+
+        totalEl.textContent = terms.length;
+
+        function showCard(index) {
+            flashcard.classList.remove('flipped');
+            frontEl.textContent = terms[index].term;
+            backEl.textContent = terms[index].definition;
+            currentEl.textContent = index + 1;
+        }
+
+        showCard(0);
+
+        flashcard.addEventListener('click', () => {
+            flashcard.classList.toggle('flipped');
+        });
+
+        document.getElementById('flip-btn').addEventListener('click', () => {
+            flashcard.classList.toggle('flipped');
+        });
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentIndex < terms.length - 1) {
+                currentIndex++;
+                showCard(currentIndex);
+            }
+        });
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showCard(currentIndex);
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                flashcard.classList.toggle('flipped');
+            } else if (e.code === 'ArrowRight') {
+                if (currentIndex < terms.length - 1) {
+                    currentIndex++;
+                    showCard(currentIndex);
+                }
+            } else if (e.code === 'ArrowLeft') {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    showCard(currentIndex);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
