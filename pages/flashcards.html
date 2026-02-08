@@ -274,122 +274,144 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
-            Fuizlet.initNavbar();
-            const params = new URLSearchParams(window.location.search);
-            const setId = params.get('id');
-            const set = await Fuizlet.Store.getSetById(setId);
+            try {
+                Fuizlet.initNavbar();
+                const params = new URLSearchParams(window.location.search);
+                const setId = params.get('id');
 
-            if (!set || !set.terms || set.terms.length === 0) {
-                window.location.href = 'sets.html';
-                return;
-            }
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-            document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-            document.getElementById('back-link').href = 'set.html?id=' + setId;
-            document.getElementById('set-title').textContent = set.title;
-            document.title = set.title + ' - Flashcards';
-
-            let terms = [...set.terms];
-            let currentIndex = 0;
-            let isShuffled = false;
-
-            const flashcard = document.getElementById('flashcard');
-            const frontEl = document.getElementById('front');
-            const backEl = document.getElementById('back');
-            const progressFill = document.getElementById('progress-fill');
-            const progressText = document.getElementById('progress-text');
-            const sideIndicator = document.getElementById('side-indicator');
-            const completeSection = document.getElementById('complete-section');
-            const cardSection = document.querySelector('.flashcard-container');
-
-            function updateCard() {
-                flashcard.classList.remove('flipped');
-                frontEl.textContent = terms[currentIndex].term;
-                backEl.textContent = terms[currentIndex].definition;
-                progressText.textContent = `Card ${currentIndex + 1} of ${terms.length}`;
-                progressFill.style.width = ((currentIndex + 1) / terms.length * 100) + '%';
-                sideIndicator.textContent = 'Term';
-
-                document.getElementById('prev-btn').disabled = currentIndex === 0;
-            }
-
-            function showComplete() {
-                cardSection.style.display = 'none';
-                completeSection.style.display = 'block';
-            }
-
-            function restart() {
-                currentIndex = 0;
-                cardSection.style.display = 'flex';
-                completeSection.style.display = 'none';
-                updateCard();
-            }
-
-            updateCard();
-
-            // Flip card
-            flashcard.addEventListener('click', () => {
-                flashcard.classList.toggle('flipped');
-                sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
-            });
-            document.getElementById('flip-btn').addEventListener('click', () => {
-                flashcard.classList.toggle('flipped');
-                sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
-            });
-
-            // Navigation
-            document.getElementById('next-btn').addEventListener('click', () => {
-                if (currentIndex < terms.length - 1) {
-                    currentIndex++;
-                    updateCard();
-                } else {
-                    showComplete();
+                if (!setId) {
+                    window.location.href = 'sets.html';
+                    return;
                 }
-            });
 
-            document.getElementById('prev-btn').addEventListener('click', () => {
-                if (currentIndex > 0) {
-                    currentIndex--;
+                const set = await Fuizlet.Store.getSetById(setId);
+
+                if (!set || !set.terms || set.terms.length === 0) {
+                    window.location.href = 'sets.html';
+                    return;
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+                document.getElementById('back-link').href = 'set.html?id=' + setId;
+                document.getElementById('set-title').textContent = set.title;
+                document.title = set.title + ' - Flashcards';
+
+                let terms = [...set.terms];
+                let currentIndex = 0;
+                let isShuffled = false;
+
+                const flashcard = document.getElementById('flashcard');
+                const frontEl = document.getElementById('front');
+                const backEl = document.getElementById('back');
+                const progressFill = document.getElementById('progress-fill');
+                const progressText = document.getElementById('progress-text');
+                const sideIndicator = document.getElementById('side-indicator');
+                const completeSection = document.getElementById('complete-section');
+                const cardSection = document.querySelector('.flashcard-container');
+
+                function updateCard() {
+                    flashcard.classList.remove('flipped');
+                    frontEl.textContent = terms[currentIndex].term;
+                    backEl.textContent = terms[currentIndex].definition;
+                    progressText.textContent = `Card ${currentIndex + 1} of ${terms.length}`;
+                    progressFill.style.width = ((currentIndex + 1) / terms.length * 100) + '%';
+                    sideIndicator.textContent = 'Term';
+
+                    document.getElementById('prev-btn').disabled = currentIndex === 0;
+                }
+
+                function showComplete() {
+                    cardSection.style.display = 'none';
+                    completeSection.style.display = 'block';
+                }
+
+                function restart() {
+                    currentIndex = 0;
+                    cardSection.style.display = 'flex';
+                    completeSection.style.display = 'none';
                     updateCard();
                 }
-            });
 
-            // Shuffle
-            document.getElementById('shuffle-btn').addEventListener('click', function () {
-                isShuffled = !isShuffled;
-                this.classList.toggle('active', isShuffled);
-                if (isShuffled) {
-                    terms = Fuizlet.shuffleArray([...set.terms]);
-                } else {
-                    terms = [...set.terms];
-                }
-                currentIndex = 0;
                 updateCard();
-            });
 
-            // Restart
-            document.getElementById('restart-btn').addEventListener('click', restart);
-
-            // Keyboard
-            document.addEventListener('keydown', (e) => {
-                if (e.code === 'Space') {
-                    e.preventDefault();
+                // Flip card
+                flashcard.addEventListener('click', () => {
                     flashcard.classList.toggle('flipped');
                     sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
-                } else if (e.code === 'ArrowRight') {
+                });
+                document.getElementById('flip-btn').addEventListener('click', () => {
+                    flashcard.classList.toggle('flipped');
+                    sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
+                });
+
+                // Navigation
+                document.getElementById('next-btn').addEventListener('click', () => {
                     if (currentIndex < terms.length - 1) {
                         currentIndex++;
                         updateCard();
                     } else {
                         showComplete();
                     }
-                } else if (e.code === 'ArrowLeft' && currentIndex > 0) {
-                    currentIndex--;
+                });
+
+                document.getElementById('prev-btn').addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex--;
+                        updateCard();
+                    }
+                });
+
+                // Shuffle
+                document.getElementById('shuffle-btn').addEventListener('click', function () {
+                    isShuffled = !isShuffled;
+                    this.classList.toggle('active', isShuffled);
+                    if (isShuffled) {
+                        try {
+                            terms = Fuizlet.shuffleArray([...set.terms]);
+                        } catch (e) {
+                            console.error("Shuffle failed", e);
+                            terms = [...set.terms]; // fallback
+                        }
+                    } else {
+                        terms = [...set.terms];
+                    }
+                    currentIndex = 0;
                     updateCard();
-                }
-            });
+                });
+
+                // Restart
+                document.getElementById('restart-btn').addEventListener('click', restart);
+
+                // Keyboard
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        flashcard.classList.toggle('flipped');
+                        sideIndicator.textContent = flashcard.classList.contains('flipped') ? 'Definition' : 'Term';
+                    } else if (e.code === 'ArrowRight') {
+                        if (currentIndex < terms.length - 1) {
+                            currentIndex++;
+                            updateCard();
+                        } else {
+                            showComplete();
+                        }
+                    } else if (e.code === 'ArrowLeft' && currentIndex > 0) {
+                        currentIndex--;
+                        updateCard();
+                    }
+                });
+            } catch (err) {
+                console.error("Initialization error:", err);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #ef4444; padding: 1rem; border: 1px solid #ef4444; border-radius: 8px; background: #fef2f2;">
+                        <strong>Error loading flashcards:</strong><br>${err.message}
+                        <br><br>
+                        <a href="set.html${window.location.search}" class="btn btn-outline">Back to Set</a>
+                    </div>
+                `;
+            }
         })();
     </script>
 </body>

@@ -215,143 +215,167 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
-            Fuizlet.initNavbar();
-            const params = new URLSearchParams(window.location.search);
-            const setId = params.get('id');
-            const set = await Fuizlet.Store.getSetById(setId);
+            try {
+                if (typeof Fuizlet === 'undefined') throw new Error("Fuizlet core library not loaded");
 
-            if (!set || !set.terms || set.terms.length === 0) {
-                window.location.href = 'sets.html';
-                return;
-            }
+                Fuizlet.initNavbar();
+                const params = new URLSearchParams(window.location.search);
+                const setId = params.get('id');
+                const set = await Fuizlet.Store.getSetById(setId);
 
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-            document.getElementById('back-link').href = 'set.html?id=' + setId;
+                if (!set || !set.terms || set.terms.length === 0) {
+                    window.location.href = 'sets.html';
+                    return;
+                }
 
-            // Load Best Time
-            const bestTimeKey = `fuizlet_best_${setId}`;
-            const bestTime = localStorage.getItem(bestTimeKey);
-            document.getElementById('best-time').textContent = bestTime ? parseFloat(bestTime).toFixed(1) + 's' : '--';
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+                document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+                document.getElementById('back-link').href = 'set.html?id=' + setId;
 
-            let tilesItems = [];
-            let startTime = 0;
-            let timerInterval;
-            let selectedTile = null;
-            let matchedCount = 0;
-            let totalPairs = 0;
+                // Load Best Time
+                const bestTimeKey = `fuizlet_best_${setId}`;
+                const bestTime = localStorage.getItem(bestTimeKey);
+                document.getElementById('best-time').textContent = bestTime ? parseFloat(bestTime).toFixed(1) + 's' : '--';
 
-            function setupGame() {
-                // Determine difficulty (max 8 pairs = 16 tiles to fit 4x4 grid)
-                const maxPairs = 8;
-                const terms = Fuizlet.shuffleArray([...set.terms]).slice(0, maxPairs);
-                totalPairs = terms.length;
+                let tilesItems = [];
+                let startTime = 0;
+                let timerInterval;
+                let selectedTile = null;
+                let matchedCount = 0;
+                let totalPairs = 0;
 
-                tilesItems = [];
-                terms.forEach((t, i) => {
-                    tilesItems.push({ id: `t-${i}`, text: t.term, pairId: i });
-                    tilesItems.push({ id: `d-${i}`, text: t.definition, pairId: i });
-                });
+                function setupGame() {
+                    // Determine difficulty (max 8 pairs = 16 tiles to fit 4x4 grid)
+                    const maxPairs = 8;
 
-                tilesItems = Fuizlet.shuffleArray(tilesItems);
+                    let terms;
+                    try {
+                        terms = Fuizlet.shuffleArray([...set.terms]).slice(0, maxPairs);
+                    } catch (e) {
+                        terms = [...set.terms].slice(0, maxPairs);
+                    }
 
-                const grid = document.getElementById('tile-grid');
-                grid.innerHTML = '';
+                    totalPairs = terms.length;
 
-                tilesItems.forEach(item => {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.textContent = item.text;
-                    tile.dataset.pairId = item.pairId;
-                    tile.onclick = () => handleTileClick(tile);
-                    grid.appendChild(tile);
-                });
-            }
+                    tilesItems = [];
+                    terms.forEach((t, i) => {
+                        tilesItems.push({ id: `t-${i}`, text: t.term, pairId: i });
+                        tilesItems.push({ id: `d-${i}`, text: t.definition, pairId: i });
+                    });
 
-            function handleTileClick(tile) {
-                if (tile.classList.contains('matched') || tile.classList.contains('selected')) return;
+                    try {
+                        tilesItems = Fuizlet.shuffleArray(tilesItems);
+                    } catch (e) {
+                        // if shuffle fails, they appear in order, but game is playable
+                    }
 
-                tile.classList.add('selected');
+                    const grid = document.getElementById('tile-grid');
+                    grid.innerHTML = '';
 
-                if (!selectedTile) {
-                    selectedTile = tile;
-                } else {
-                    // Check match
-                    const isMatch = selectedTile.dataset.pairId === tile.dataset.pairId;
+                    tilesItems.forEach(item => {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        tile.textContent = item.text;
+                        tile.dataset.pairId = item.pairId;
+                        tile.onclick = () => handleTileClick(tile);
+                        grid.appendChild(tile);
+                    });
+                }
 
-                    if (isMatch) {
-                        selectedTile.classList.add('matched');
-                        tile.classList.add('matched');
-                        selectedTile = null;
-                        matchedCount++;
+                function handleTileClick(tile) {
+                    if (tile.classList.contains('matched') || tile.classList.contains('selected')) return;
 
-                        if (matchedCount === totalPairs) msgGameComplete();
+                    tile.classList.add('selected');
+
+                    if (!selectedTile) {
+                        selectedTile = tile;
                     } else {
-                        // Incorrect
-                        const t1 = selectedTile;
-                        const t2 = tile;
-                        t1.classList.add('incorrect');
-                        t2.classList.add('incorrect');
-                        selectedTile = null;
+                        // Check match
+                        const isMatch = selectedTile.dataset.pairId === tile.dataset.pairId;
 
-                        setTimeout(() => {
-                            t1.classList.remove('selected', 'incorrect');
-                            t2.classList.remove('selected', 'incorrect');
-                        }, 500);
+                        if (isMatch) {
+                            selectedTile.classList.add('matched');
+                            tile.classList.add('matched');
+                            selectedTile = null;
+                            matchedCount++;
+
+                            if (matchedCount === totalPairs) msgGameComplete();
+                        } else {
+                            // Incorrect
+                            const t1 = selectedTile;
+                            const t2 = tile;
+                            t1.classList.add('incorrect');
+                            t2.classList.add('incorrect');
+                            selectedTile = null;
+
+                            setTimeout(() => {
+                                t1.classList.remove('selected', 'incorrect');
+                                t2.classList.remove('selected', 'incorrect');
+                            }, 500);
+                        }
                     }
                 }
-            }
 
-            function startGame() {
-                document.getElementById('start-overlay').style.display = 'none';
-                const countEl = document.getElementById('countdown');
-                const overlay = document.getElementById('countdown-overlay');
-                overlay.style.display = 'flex';
+                function startGame() {
+                    document.getElementById('start-overlay').style.display = 'none';
+                    const countEl = document.getElementById('countdown');
+                    const overlay = document.getElementById('countdown-overlay');
+                    overlay.style.display = 'flex';
 
-                let count = 3;
-                countEl.textContent = count;
+                    let count = 3;
+                    countEl.textContent = count;
 
-                const int = setInterval(() => {
-                    count--;
-                    if (count > 0) {
-                        countEl.textContent = count;
-                        // Trigger reflow to restart animation
-                        countEl.style.animation = 'none';
-                        countEl.offsetHeight;
-                        countEl.style.animation = 'popIn 0.5s';
-                    } else {
-                        clearInterval(int);
-                        overlay.style.display = 'none';
-                        beginTimer();
-                    }
-                }, 800);
-            }
-
-            function beginTimer() {
-                startTime = Date.now();
-                const timerEl = document.getElementById('timer');
-
-                timerInterval = setInterval(() => {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    timerEl.textContent = elapsed.toFixed(1);
-                }, 100);
-            }
-
-            function msgGameComplete() {
-                clearInterval(timerInterval);
-                const finalTime = document.getElementById('timer').textContent;
-                document.getElementById('result-overlay').style.display = 'flex';
-                document.getElementById('final-score').textContent = finalTime + 's';
-
-                // Save best match
-                if (!bestTime || parseFloat(finalTime) < parseFloat(bestTime)) {
-                    localStorage.setItem(bestTimeKey, finalTime);
+                    const int = setInterval(() => {
+                        count--;
+                        if (count > 0) {
+                            countEl.textContent = count;
+                            // Trigger reflow to restart animation
+                            countEl.style.animation = 'none';
+                            countEl.offsetHeight;
+                            countEl.style.animation = 'popIn 0.5s';
+                        } else {
+                            clearInterval(int);
+                            overlay.style.display = 'none';
+                            beginTimer();
+                        }
+                    }, 800);
                 }
-            }
 
-            setupGame();
-            document.getElementById('start-btn').addEventListener('click', startGame);
+                function beginTimer() {
+                    startTime = Date.now();
+                    const timerEl = document.getElementById('timer');
+
+                    timerInterval = setInterval(() => {
+                        const elapsed = (Date.now() - startTime) / 1000;
+                        timerEl.textContent = elapsed.toFixed(1);
+                    }, 100);
+                }
+
+                function msgGameComplete() {
+                    clearInterval(timerInterval);
+                    const finalTime = document.getElementById('timer').textContent;
+                    document.getElementById('result-overlay').style.display = 'flex';
+                    document.getElementById('final-score').textContent = finalTime + 's';
+
+                    // Save best match
+                    if (!bestTime || parseFloat(finalTime) < parseFloat(bestTime)) {
+                        localStorage.setItem(bestTimeKey, finalTime);
+                    }
+                }
+
+                setupGame();
+                document.getElementById('start-btn').addEventListener('click', startGame);
+            } catch (err) {
+                console.error("Initialization error:", err);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #ef4444; padding: 1rem; border: 1px solid #ef4444; border-radius: 8px; background: #fef2f2;">
+                        <strong>Error loading Match Game:</strong><br>${err.message}
+                        <br><br>
+                        <a href="set.html${window.location.search}" class="btn btn-outline">Back to Set</a>
+                    </div>
+                `;
+            }
         })();
     </script>
 </body>

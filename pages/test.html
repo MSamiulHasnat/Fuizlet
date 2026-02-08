@@ -229,161 +229,188 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
-            Fuizlet.initNavbar();
-            const params = new URLSearchParams(window.location.search);
-            const setId = params.get('id');
-            const set = await Fuizlet.Store.getSetById(setId);
+            try {
+                if (typeof Fuizlet === 'undefined') throw new Error("Fuizlet core library not loaded");
 
-            if (!set || !set.terms || set.terms.length === 0) {
-                window.location.href = 'sets.html';
-                return;
-            }
+                Fuizlet.initNavbar();
+                const params = new URLSearchParams(window.location.search);
+                const setId = params.get('id');
+                const set = await Fuizlet.Store.getSetById(setId);
 
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('config-screen').style.display = 'block';
-            document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-            document.getElementById('back-btn').href = 'set.html?id=' + setId;
-
-            // Generate test on start
-            document.getElementById('start-btn').addEventListener('click', () => {
-                const useTF = document.getElementById('type-truefalse').checked;
-                const useMC = document.getElementById('type-mc').checked;
-                const useWritten = document.getElementById('type-written').checked;
-
-                if (!useTF && !useMC && !useWritten) {
-                    alert('Please select at least one question type');
+                if (!set || !set.terms || set.terms.length === 0) {
+                    window.location.href = 'sets.html';
                     return;
                 }
 
-                // Determine question count
-                const limitVal = document.querySelector('input[name="limit"]:checked').value;
-                let limit = set.terms.length;
-                if (limitVal !== 'all') limit = Math.min(parseInt(limitVal), set.terms.length);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('config-screen').style.display = 'block';
+                document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+                document.getElementById('back-btn').href = 'set.html?id=' + setId;
 
-                generateTest(limit, { useTF, useMC, useWritten });
-            });
+                // Generate test on start
+                document.getElementById('start-btn').addEventListener('click', () => {
+                    const useTF = document.getElementById('type-truefalse').checked;
+                    const useMC = document.getElementById('type-mc').checked;
+                    const useWritten = document.getElementById('type-written').checked;
 
-            let questions = [];
-
-            function generateTest(limit, types) {
-                document.getElementById('config-screen').style.display = 'none';
-                document.getElementById('test-view').style.display = 'block';
-
-                // Shuffle terms
-                const shuffledTerms = Fuizlet.shuffleArray([...set.terms]).slice(0, limit);
-                const container = document.getElementById('questions-list');
-
-                const availableTypes = [];
-                if (types.useTF) availableTypes.push('tf');
-                if (types.useMC) availableTypes.push('mc');
-                if (types.useWritten) availableTypes.push('written');
-
-                shuffledTerms.forEach((term, idx) => {
-                    const qType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-                    const qEl = document.createElement('div');
-                    qEl.className = 'question-block';
-                    qEl.id = `q-${idx}`;
-
-                    let html = `<div class="question-number">Question ${idx + 1}</div>`;
-
-                    // Question Logic
-                    let questionObj = {
-                        id: idx,
-                        type: qType,
-                        term: term.term,
-                        correctAnswer: term.definition,
-                        userAnswer: null
-                    };
-
-                    if (qType === 'written') {
-                        html += `<div class="question-text">${term.term}</div>`;
-                        html += `<input type="text" class="text-answer" placeholder="Type the definition..." data-idx="${idx}">`;
+                    if (!useTF && !useMC && !useWritten) {
+                        alert('Please select at least one question type');
+                        return;
                     }
-                    else if (qType === 'mc') {
-                        html += `<div class="question-text">${term.term}</div><div class="mc-options">`;
 
-                        // Generate wrong options
-                        const otherDefs = set.terms.filter(t => t.definition !== term.definition).map(t => t.definition);
-                        const wrong = Fuizlet.shuffleArray(otherDefs).slice(0, 3);
-                        const opts = Fuizlet.shuffleArray([term.definition, ...wrong]);
+                    // Determine question count
+                    const limitVal = document.querySelector('input[name="limit"]:checked').value;
+                    let limit = set.terms.length;
+                    if (limitVal !== 'all') limit = Math.min(parseInt(limitVal), set.terms.length);
 
-                        opts.forEach(opt => {
+                    generateTest(limit, { useTF, useMC, useWritten });
+                });
+
+                let questions = [];
+
+                function generateTest(limit, types) {
+                    document.getElementById('config-screen').style.display = 'none';
+                    document.getElementById('test-view').style.display = 'block';
+
+                    // Shuffle terms
+                    let shuffledTerms;
+                    try {
+                        shuffledTerms = Fuizlet.shuffleArray([...set.terms]).slice(0, limit);
+                    } catch (e) {
+                        shuffledTerms = [...set.terms].slice(0, limit);
+                    }
+
+                    const container = document.getElementById('questions-list');
+
+                    const availableTypes = [];
+                    if (types.useTF) availableTypes.push('tf');
+                    if (types.useMC) availableTypes.push('mc');
+                    if (types.useWritten) availableTypes.push('written');
+
+                    shuffledTerms.forEach((term, idx) => {
+                        const qType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                        const qEl = document.createElement('div');
+                        qEl.className = 'question-block';
+                        qEl.id = `q-${idx}`;
+
+                        let html = `<div class="question-number">Question ${idx + 1}</div>`;
+
+                        // Question Logic
+                        let questionObj = {
+                            id: idx,
+                            type: qType,
+                            term: term.term,
+                            correctAnswer: term.definition,
+                            userAnswer: null
+                        };
+
+                        if (qType === 'written') {
+                            html += `<div class="question-text">${term.term}</div>`;
+                            html += `<input type="text" class="text-answer" placeholder="Type the definition..." data-idx="${idx}">`;
+                        }
+                        else if (qType === 'mc') {
+                            html += `<div class="question-text">${term.term}</div><div class="mc-options">`;
+
+                            // Generate wrong options
+                            const otherDefs = set.terms.filter(t => t.definition !== term.definition).map(t => t.definition);
+
+                            let wrong;
+                            try {
+                                wrong = Fuizlet.shuffleArray(otherDefs).slice(0, 3);
+                            } catch (e) { wrong = otherDefs.slice(0, 3); }
+
+                            let opts;
+                            try {
+                                opts = Fuizlet.shuffleArray([term.definition, ...wrong]);
+                            } catch (e) { opts = [term.definition, ...wrong]; }
+
+                            opts.forEach(opt => {
+                                html += `
+                                    <label class="mc-label">
+                                        <input type="radio" name="q-${idx}" value="${opt.replace(/"/g, '&quot;')}" data-idx="${idx}">
+                                        ${opt}
+                                    </label>
+                                `;
+                            });
+                            html += `</div>`;
+                        }
+                        else if (qType === 'tf') {
+                            // 50/50 chance of being true
+                            const isTrue = Math.random() > 0.5;
+                            const shownDef = isTrue ? term.definition :
+                                (set.terms.length > 1 ? set.terms.find(t => t !== term).definition : "Incorrect def");
+
+                            questionObj.correctAnswer = isTrue ? 'True' : 'False';
+                            questionObj.isTrueFalseQuestion = true; // Flag for check logic
+
+                            html += `<div class="question-text">${term.term}</div>`;
+                            html += `<div style="background: #f8faff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-style: italic;">"${shownDef}"</div>`;
                             html += `
-                                <label class="mc-label">
-                                    <input type="radio" name="q-${idx}" value="${opt.replace(/"/g, '&quot;')}" data-idx="${idx}">
-                                    ${opt}
-                                </label>
+                                <div class="mc-options">
+                                    <label class="mc-label"><input type="radio" name="q-${idx}" value="True" data-idx="${idx}"> True</label>
+                                    <label class="mc-label"><input type="radio" name="q-${idx}" value="False" data-idx="${idx}"> False</label>
+                                </div>
                             `;
-                        });
-                        html += `</div>`;
-                    }
-                    else if (qType === 'tf') {
-                        // 50/50 chance of being true
-                        const isTrue = Math.random() > 0.5;
-                        const shownDef = isTrue ? term.definition :
-                            (set.terms.length > 1 ? set.terms.find(t => t !== term).definition : "Incorrect def");
+                        }
 
-                        questionObj.correctAnswer = isTrue ? 'True' : 'False';
-                        questionObj.isTrueFalseQuestion = true; // Flag for check logic
+                        qEl.innerHTML = html;
+                        container.appendChild(qEl);
+                        questions.push(questionObj);
+                    });
+                }
 
-                        html += `<div class="question-text">${term.term}</div>`;
-                        html += `<div style="background: #f8faff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-style: italic;">"${shownDef}"</div>`;
-                        html += `
-                            <div class="mc-options">
-                                <label class="mc-label"><input type="radio" name="q-${idx}" value="True" data-idx="${idx}"> True</label>
-                                <label class="mc-label"><input type="radio" name="q-${idx}" value="False" data-idx="${idx}"> False</label>
-                            </div>
-                        `;
-                    }
+                document.getElementById('submit-btn').addEventListener('click', () => {
+                    let score = 0;
 
-                    qEl.innerHTML = html;
-                    container.appendChild(qEl);
-                    questions.push(questionObj);
+                    questions.forEach(q => {
+                        const block = document.getElementById(`q-${q.id}`);
+                        let userVal = '';
+
+                        if (q.type === 'written') {
+                            userVal = block.querySelector('input').value.trim();
+                        } else {
+                            const checked = block.querySelector('input:checked');
+                            if (checked) userVal = checked.value;
+                        }
+
+                        const isCorrect = userVal.toLowerCase() === q.correctAnswer.toLowerCase();
+                        if (isCorrect) score++;
+
+                        // Visual feedback
+                        block.classList.add(isCorrect ? 'correct' : 'wrong');
+                        const inputs = block.querySelectorAll('input');
+                        inputs.forEach(i => i.disabled = true);
+
+                        if (!isCorrect) {
+                            const feedback = document.createElement('div');
+                            feedback.className = 'result-detail';
+                            feedback.innerHTML = `<strong>Correct Answer:</strong> ${q.correctAnswer}`;
+                            block.appendChild(feedback);
+                        }
+                    });
+
+                    document.getElementById('submit-btn').style.display = 'none';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                    // Show score view at top but keep questions visible for review
+                    const scoreView = document.getElementById('results-view');
+                    scoreView.style.display = 'block';
+                    document.querySelector('.test-container').insertBefore(scoreView, document.getElementById('test-view'));
+
+                    const pct = Math.round((score / questions.length) * 100);
+                    document.getElementById('final-score').textContent = pct + '%';
+                    document.getElementById('score-text').textContent = `You got ${score} out of ${questions.length} questions correct.`;
                 });
+            } catch (err) {
+                console.error("Initialization error:", err);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #ef4444; padding: 1rem; border: 1px solid #ef4444; border-radius: 8px; background: #fef2f2;">
+                        <strong>Error loading Test Mode:</strong><br>${err.message}
+                        <br><br>
+                        <a href="set.html${window.location.search}" class="btn btn-outline">Back to Set</a>
+                    </div>
+                `;
             }
-
-            document.getElementById('submit-btn').addEventListener('click', () => {
-                let score = 0;
-
-                questions.forEach(q => {
-                    const block = document.getElementById(`q-${q.id}`);
-                    let userVal = '';
-
-                    if (q.type === 'written') {
-                        userVal = block.querySelector('input').value.trim();
-                    } else {
-                        const checked = block.querySelector('input:checked');
-                        if (checked) userVal = checked.value;
-                    }
-
-                    const isCorrect = userVal.toLowerCase() === q.correctAnswer.toLowerCase();
-                    if (isCorrect) score++;
-
-                    // Visual feedback
-                    block.classList.add(isCorrect ? 'correct' : 'wrong');
-                    const inputs = block.querySelectorAll('input');
-                    inputs.forEach(i => i.disabled = true);
-
-                    if (!isCorrect) {
-                        const feedback = document.createElement('div');
-                        feedback.className = 'result-detail';
-                        feedback.innerHTML = `<strong>Correct Answer:</strong> ${q.correctAnswer}`;
-                        block.appendChild(feedback);
-                    }
-                });
-
-                document.getElementById('submit-btn').style.display = 'none';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                // Show score view at top but keep questions visible for review
-                const scoreView = document.getElementById('results-view');
-                scoreView.style.display = 'block';
-                document.querySelector('.test-container').insertBefore(scoreView, document.getElementById('test-view'));
-
-                const pct = Math.round((score / questions.length) * 100);
-                document.getElementById('final-score').textContent = pct + '%';
-                document.getElementById('score-text').textContent = `You got ${score} out of ${questions.length} questions correct.`;
-            });
         })();
     </script>
 </body>

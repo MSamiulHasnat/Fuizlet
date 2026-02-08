@@ -260,162 +260,187 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
-            Fuizlet.initNavbar();
-            const params = new URLSearchParams(window.location.search);
-            const setId = params.get('id');
-            const set = await Fuizlet.Store.getSetById(setId);
+            try {
+                if (typeof Fuizlet === 'undefined') throw new Error("Fuizlet core library not loaded");
 
-            if (!set || !set.terms || set.terms.length === 0) {
-                window.location.href = 'sets.html';
-                return;
-            }
+                Fuizlet.initNavbar();
+                const params = new URLSearchParams(window.location.search);
+                const setId = params.get('id');
+                const set = await Fuizlet.Store.getSetById(setId);
 
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('session-view').style.display = 'block';
-            document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-            document.getElementById('back-btn').href = 'set.html?id=' + setId;
-            document.title = 'Learn: ' + set.title;
-
-            // State
-            let terms = [...set.terms];
-            let remaining = [...terms]; // Queue of terms to study
-            let mastered = [];
-            let currentTerm = null;
-            let currentMode = 'mc'; // 'mc' or 'write'
-
-            // DOM Elements
-            const termDisplay = document.getElementById('term-display');
-            const mcArea = document.getElementById('mc-area');
-            const writeArea = document.getElementById('write-area');
-            const writeInput = document.getElementById('write-input');
-            const feedbackArea = document.getElementById('feedback-area');
-            const feedbackTitle = document.getElementById('feedback-title');
-            const feedbackDetail = document.getElementById('feedback-detail');
-            const continueBtn = document.getElementById('continue-btn');
-            const remainingCount = document.getElementById('remaining-count');
-
-            function nextQuestion() {
-                if (remaining.length === 0) {
-                    showResults();
+                if (!set || !set.terms || set.terms.length === 0) {
+                    window.location.href = 'sets.html';
                     return;
                 }
 
-                // Pick random term from remaining
-                const index = Math.floor(Math.random() * remaining.length);
-                currentTerm = remaining[index];
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('session-view').style.display = 'block';
+                document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+                document.getElementById('back-btn').href = 'set.html?id=' + setId;
+                document.title = 'Learn: ' + set.title;
 
-                // 50/50 chance of Write mode vs Multiple Choice (if > 3 definitions available)
-                const enoughTerms = set.terms.length >= 4;
-                currentMode = (Math.random() > 0.5 || !enoughTerms) ? 'mc' : 'write';
+                // State
+                let terms = [...set.terms];
+                let remaining = [...terms]; // Queue of terms to study
+                let mastered = [];
+                let currentTerm = null;
+                let currentMode = 'mc'; // 'mc' or 'write'
 
-                // Update UI
-                termDisplay.textContent = currentTerm.term;
-                remainingCount.textContent = remaining.length;
-                feedbackArea.style.display = 'none';
-                continueBtn.style.display = 'none';
-                writeInput.value = '';
-                writeInput.className = 'write-input';
-                writeInput.disabled = false;
+                // DOM Elements
+                const termDisplay = document.getElementById('term-display');
+                const mcArea = document.getElementById('mc-area');
+                const writeArea = document.getElementById('write-area');
+                const writeInput = document.getElementById('write-input');
+                const feedbackArea = document.getElementById('feedback-area');
+                const feedbackTitle = document.getElementById('feedback-title');
+                const feedbackDetail = document.getElementById('feedback-detail');
+                const continueBtn = document.getElementById('continue-btn');
+                const remainingCount = document.getElementById('remaining-count');
 
-                if (currentMode === 'mc') {
-                    setupMultipleChoice();
-                } else {
-                    setupWriteMode();
+                function nextQuestion() {
+                    if (remaining.length === 0) {
+                        showResults();
+                        return;
+                    }
+
+                    // Pick random term from remaining
+                    const index = Math.floor(Math.random() * remaining.length);
+                    currentTerm = remaining[index];
+
+                    // 50/50 chance of Write mode vs Multiple Choice (if > 3 definitions available)
+                    const enoughTerms = set.terms.length >= 4;
+                    currentMode = (Math.random() > 0.5 || !enoughTerms) ? 'mc' : 'write';
+
+                    // Update UI
+                    termDisplay.textContent = currentTerm.term;
+                    remainingCount.textContent = remaining.length;
+                    feedbackArea.style.display = 'none';
+                    continueBtn.style.display = 'none';
+                    writeInput.value = '';
+                    writeInput.className = 'write-input';
+                    writeInput.disabled = false;
+
+                    if (currentMode === 'mc') {
+                        setupMultipleChoice();
+                    } else {
+                        setupWriteMode();
+                    }
                 }
-            }
 
-            function setupMultipleChoice() {
-                mcArea.style.display = 'grid';
-                writeArea.style.display = 'none';
-                mcArea.innerHTML = '';
+                function setupMultipleChoice() {
+                    mcArea.style.display = 'grid';
+                    writeArea.style.display = 'none';
+                    mcArea.innerHTML = '';
 
-                // Get 3 incorrect answers
-                const otherDefs = set.terms
-                    .filter(t => t.definition !== currentTerm.definition)
-                    .map(t => t.definition);
-                const wrongAnswers = Fuizlet.shuffleArray(otherDefs).slice(0, 3);
+                    // Get 3 incorrect answers
+                    const otherDefs = set.terms
+                        .filter(t => t.definition !== currentTerm.definition)
+                        .map(t => t.definition);
 
-                const options = Fuizlet.shuffleArray([currentTerm.definition, ...wrongAnswers]);
+                    let wrongAnswers;
+                    try {
+                        wrongAnswers = Fuizlet.shuffleArray(otherDefs).slice(0, 3);
+                    } catch (e) {
+                        // Fallback if shuffle fails
+                        wrongAnswers = otherDefs.slice(0, 3);
+                    }
 
-                options.forEach(opt => {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.textContent = opt;
-                    btn.onclick = () => checkAnswer(opt, btn);
-                    mcArea.appendChild(btn);
-                });
-            }
+                    let options;
+                    try {
+                        options = Fuizlet.shuffleArray([currentTerm.definition, ...wrongAnswers]);
+                    } catch (e) {
+                        options = [currentTerm.definition, ...wrongAnswers];
+                    }
 
-            function setupWriteMode() {
-                mcArea.style.display = 'none';
-                writeArea.style.display = 'block';
-                writeInput.focus();
-            }
-
-            function checkAnswer(answer, btnElement = null) {
-                const isCorrect = answer.trim().toLowerCase() === currentTerm.definition.trim().toLowerCase();
-
-                if (currentMode === 'mc') {
-                    document.querySelectorAll('.option-btn').forEach(btn => {
-                        btn.disabled = true;
-                        if (btn.textContent === currentTerm.definition) btn.classList.add('correct');
-                        else if (btn === btnElement && !isCorrect) btn.classList.add('wrong');
+                    options.forEach(opt => {
+                        const btn = document.createElement('button');
+                        btn.className = 'option-btn';
+                        btn.textContent = opt;
+                        btn.onclick = () => checkAnswer(opt, btn);
+                        mcArea.appendChild(btn);
                     });
-                } else {
-                    writeInput.disabled = true;
-                    if (isCorrect) writeInput.classList.add('correct');
-                    else writeInput.classList.add('wrong');
                 }
 
-                showFeedback(isCorrect);
-            }
-
-            function showFeedback(isCorrect) {
-                feedbackArea.style.display = 'block';
-                continueBtn.style.display = 'inline-block';
-
-                if (isCorrect) {
-                    feedbackTitle.textContent = 'Correct!';
-                    feedbackArea.className = 'feedback correct';
-                    feedbackDetail.textContent = 'Nicely done!';
-
-                    // Move to mastered
-                    mastered.push(currentTerm);
-                    remaining = remaining.filter(t => t !== currentTerm);
-                } else {
-                    feedbackTitle.textContent = 'Incorrect';
-                    feedbackArea.className = 'feedback wrong';
-                    feedbackDetail.innerHTML = `
-                        <strong>Correct Answer:</strong> ${currentTerm.definition}<br>
-                        <em>You said:</em> ${currentMode === 'write' ? writeInput.value : 'Chosen option'}
-                    `;
-                    // Keep in remaining queue (don't remove)
+                function setupWriteMode() {
+                    mcArea.style.display = 'none';
+                    writeArea.style.display = 'block';
+                    writeInput.focus();
                 }
+
+                function checkAnswer(answer, btnElement = null) {
+                    const isCorrect = answer.trim().toLowerCase() === currentTerm.definition.trim().toLowerCase();
+
+                    if (currentMode === 'mc') {
+                        document.querySelectorAll('.option-btn').forEach(btn => {
+                            btn.disabled = true;
+                            if (btn.textContent === currentTerm.definition) btn.classList.add('correct');
+                            else if (btn === btnElement && !isCorrect) btn.classList.add('wrong');
+                        });
+                    } else {
+                        writeInput.disabled = true;
+                        if (isCorrect) writeInput.classList.add('correct');
+                        else writeInput.classList.add('wrong');
+                    }
+
+                    showFeedback(isCorrect);
+                }
+
+                function showFeedback(isCorrect) {
+                    feedbackArea.style.display = 'block';
+                    continueBtn.style.display = 'inline-block';
+
+                    if (isCorrect) {
+                        feedbackTitle.textContent = 'Correct!';
+                        feedbackArea.className = 'feedback correct';
+                        feedbackDetail.textContent = 'Nicely done!';
+
+                        // Move to mastered
+                        mastered.push(currentTerm);
+                        remaining = remaining.filter(t => t !== currentTerm);
+                    } else {
+                        feedbackTitle.textContent = 'Incorrect';
+                        feedbackArea.className = 'feedback wrong';
+                        feedbackDetail.innerHTML = `
+                            <strong>Correct Answer:</strong> ${currentTerm.definition}<br>
+                            <em>You said:</em> ${currentMode === 'write' ? writeInput.value : 'Chosen option'}
+                        `;
+                        // Keep in remaining queue (don't remove)
+                    }
+                }
+
+                document.getElementById('write-submit').addEventListener('click', () => {
+                    checkAnswer(writeInput.value);
+                });
+
+                writeInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') checkAnswer(writeInput.value);
+                });
+
+                continueBtn.addEventListener('click', nextQuestion);
+
+                function showResults() {
+                    document.getElementById('session-view').style.display = 'none';
+                    document.getElementById('results-view').style.display = 'block';
+                    document.getElementById('mastered-count').textContent = mastered.length;
+
+                    // Calculate score
+                    const initialCount = terms.length;
+                    // Simple mastery score could be calculated more robustly if we tracked attempt counts
+                    document.getElementById('final-score').textContent = '100%';
+                }
+
+                // Start first question
+                nextQuestion();
+            } catch (err) {
+                console.error("Initialization error:", err);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color: #ef4444; padding: 1rem; border: 1px solid #ef4444; border-radius: 8px; background: #fef2f2;">
+                        <strong>Error loading Learn Mode:</strong><br>${err.message}
+                        <br><br>
+                        <a href="set.html${window.location.search}" class="btn btn-outline">Back to Set</a>
+                    </div>
+                `;
             }
-
-            document.getElementById('write-submit').addEventListener('click', () => {
-                checkAnswer(writeInput.value);
-            });
-
-            writeInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') checkAnswer(writeInput.value);
-            });
-
-            continueBtn.addEventListener('click', nextQuestion);
-
-            function showResults() {
-                document.getElementById('session-view').style.display = 'none';
-                document.getElementById('results-view').style.display = 'block';
-                document.getElementById('mastered-count').textContent = mastered.length;
-
-                // Calculate score
-                const initialCount = terms.length;
-                // Simple mastery score could be calculated more robustly if we tracked attempt counts
-                document.getElementById('final-score').textContent = '100%';
-            }
-
-            // Start first question
-            nextQuestion();
         })();
     </script>
 </body>
