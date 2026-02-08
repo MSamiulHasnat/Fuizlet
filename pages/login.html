@@ -86,8 +86,8 @@
             <div class="error-message" id="error-message"></div>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="email" id="email-label">Email</label>
-                    <input type="text" id="email" placeholder="Enter your email" required>
+                    <label for="email" id="email-label">Email or Username</label>
+                    <input type="text" id="email" placeholder="Enter your email or username" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -112,7 +112,7 @@
         } else {
             modeBadge.textContent = '💾 Local Mode';
             modeBadge.className = 'mode-badge mode-local';
-            // In local mode, use username instead of email
+            // In local mode, only username is used
             document.getElementById('email-label').textContent = 'Username';
             document.getElementById('email').placeholder = 'Enter your username';
         }
@@ -128,7 +128,7 @@
         document.getElementById('login-form').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const email = document.getElementById('email').value.trim();
+            let input = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorEl = document.getElementById('error-message');
             const submitBtn = this.querySelector('button[type="submit"]');
@@ -138,6 +138,22 @@
             errorEl.style.display = 'none';
 
             try {
+                // Check if input is email or username
+                let email = input;
+                if (!input.includes('@') && Fuizlet.isCloudMode()) {
+                    // It's a username - look up the email from profiles table
+                    const { data: profile, error: lookupError } = await window.supabaseClient
+                        .from('profiles')
+                        .select('auth_email')
+                        .eq('username', input)
+                        .single();
+
+                    if (lookupError || !profile?.auth_email) {
+                        throw new Error('Username not found');
+                    }
+                    email = profile.auth_email;
+                }
+
                 const { data, error } = await Fuizlet.Store.signIn(email, password);
 
                 if (error) {

@@ -421,18 +421,33 @@ async function initNavbar(navLinksSelector = '.nav-links') {
         const initials = getInitials(username);
         const avatarColor = getAvatarColor(username);
 
+        // Get custom avatar settings
+        const avatarType = user.user_metadata?.avatar_type || user.avatar_type || 'initials';
+        const avatarValue = user.user_metadata?.avatar_value || user.avatar_value || '';
+
+        // Determine avatar display
+        let avatarContent = initials;
+        let avatarStyle = `background: ${avatarColor};`;
+        if (avatarType === 'emoji' || avatarType === 'preset') {
+            avatarContent = avatarValue || initials;
+            avatarStyle = `background: ${avatarColor}; font-size: 1.2rem;`;
+        } else if (avatarType === 'photo' && avatarValue) {
+            avatarContent = `<img src="${avatarValue}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            avatarStyle = 'background: transparent; overflow: hidden;';
+        }
+
         navLinks.innerHTML = `
             <a href="${pagesPath}sets.html">Sets</a>
             <a href="${pagesPath}folders.html">Folders</a>
             <a href="${pagesPath}groups.html">Groups</a>
             <a href="${pagesPath}create.html" class="btn btn-primary">+ Create</a>
             <div class="user-menu">
-                <button class="avatar-btn" id="avatar-btn" style="background: ${avatarColor};">
-                    ${initials}
+                <button class="avatar-btn" id="avatar-btn" style="${avatarStyle}">
+                    ${avatarContent}
                 </button>
                 <div class="dropdown-menu" id="dropdown-menu">
                     <div class="dropdown-header">
-                        <div class="dropdown-avatar" style="background: ${avatarColor};">${initials}</div>
+                        <div class="dropdown-avatar" style="${avatarStyle}">${avatarContent}</div>
                         <div class="dropdown-info">
                             <strong>${username}</strong>
                             ${user.email ? `<small>${user.email}</small>` : ''}
