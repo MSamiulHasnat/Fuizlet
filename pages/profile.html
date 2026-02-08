@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Fuizlet</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .profile-page {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Hero Section */
+        .profile-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+            animation: shimmer 15s linear infinite;
+        }
+
+        @keyframes shimmer {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            font-size: 2.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 1;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .profile-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-email {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--color-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: default;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+
+        .stat-label {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .see-all {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .see-all:hover {
+            text-decoration: underline;
+        }
+
+        /* Content Cards Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .content-card {
+            background: var(--color-card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .content-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-card h4 {
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .content-card p {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .content-card .card-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            background: var(--color-card);
+            border-radius: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .empty-state a {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--color-text-muted);
+        }
+
+        /* Fun confetti effect */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="logo">Fuizlet</a>
+        <div class="nav-links"></div>
+    </nav>
+
+    <div class="profile-page">
+        <div id="loading" class="loading">Loading your profile...</div>
+        <div id="content" style="display: none;">
+            <!-- Hero Section -->
+            <div class="profile-hero">
+                <div class="profile-avatar" id="profile-avatar"></div>
+                <div class="profile-name" id="profile-name"></div>
+                <div class="profile-email" id="profile-email"></div>
+                <div class="profile-badge">🎓 Knowledge Seeker</div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid" id="stats-grid"></div>
+
+            <!-- My Sets Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📚 My Study Sets</h2>
+                    <a href="sets.html" class="see-all">See All →</a>
+                </div>
+                <div class="content-grid" id="sets-grid"></div>
+            </div>
+
+            <!-- My Folders Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">📁 My Folders</h2>
+                    <a href="folders.html" class="see-all">See All →</a>
+                </div>
+                <div class="content-grid" id="folders-grid"></div>
+            </div>
+
+            <!-- My Groups Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">👥 My Groups</h2>
+                    <a href="groups.html" class="see-all">See All →</a>
+                </div>
+                <div class="content-grid" id="groups-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        (async () => {
+            Fuizlet.initNavbar();
+
+            const user = await Fuizlet.Store.getCurrentUser();
+
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            // User info
+            const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
+            const initials = Fuizlet.getInitials(username);
+            const avatarColor = Fuizlet.getAvatarColor(username);
+
+            document.getElementById('profile-avatar').textContent = initials;
+            document.getElementById('profile-avatar').style.background = 'rgba(255,255,255,0.2)';
+            document.getElementById('profile-name').textContent = username;
+            document.getElementById('profile-email').textContent = user.email || '';
+
+            // Fetch data
+            const [sets, folders, groups] = await Promise.all([
+                Fuizlet.Store.getSets(),
+                Fuizlet.Store.getFolders(),
+                Fuizlet.Store.getGroups()
+            ]);
+
+            // Calculate total flashcards
+            const totalCards = sets.reduce((sum, s) => sum + (s.terms?.length || 0), 0);
+
+            // Render stats
+            document.getElementById('stats-grid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-value">${sets.length}</div>
+                    <div class="stat-label">Study Sets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🃏</div>
+                    <div class="stat-value">${totalCards}</div>
+                    <div class="stat-label">Flashcards</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-value">${folders.length}</div>
+                    <div class="stat-label">Folders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value">${groups.length}</div>
+                    <div class="stat-label">Groups</div>
+                </div>
+            `;
+
+            // Render sets (max 6)
+            const setsGrid = document.getElementById('sets-grid');
+            if (sets.length === 0) {
+                setsGrid.innerHTML = '<div class="empty-state">No sets yet. <a href="create.html">Create one!</a></div>';
+            } else {
+                setsGrid.innerHTML = sets.slice(0, 6).map(s => `
+                    <a href="set.html?id=${s.id}" class="content-card">
+                        <div class="card-icon">📚</div>
+                        <h4>${s.title}</h4>
+                        <p>${(s.terms?.length || 0)} terms</p>
+                    </a>
+                `).join('');
+            }
+
+            // Render folders (max 6)
+            const foldersGrid = document.getElementById('folders-grid');
+            if (folders.length === 0) {
+                foldersGrid.innerHTML = '<div class="empty-state">No folders yet. <a href="folders.html">Create one!</a></div>';
+            } else {
+                foldersGrid.innerHTML = folders.slice(0, 6).map(f => `
+                    <a href="folder.html?id=${f.id}" class="content-card">
+                        <div class="card-icon">📁</div>
+                        <h4>${f.name}</h4>
+                        <p>${(f.setIds?.length || f.set_ids?.length || 0)} sets</p>
+                    </a>
+                `).join('');
+            }
+
+            // Render groups (max 6)
+            const groupsGrid = document.getElementById('groups-grid');
+            if (groups.length === 0) {
+                groupsGrid.innerHTML = '<div class="empty-state">No groups yet. <a href="groups.html">Join or create one!</a></div>';
+            } else {
+                groupsGrid.innerHTML = groups.slice(0, 6).map(g => `
+                    <a href="group.html?id=${g.id}" class="content-card">
+                        <div class="card-icon">👥</div>
+                        <h4>${g.name}</h4>
+                        <p>${(g.members?.length || 0)} members</p>
+                    </a>
+                `).join('');
+            }
+
+            // Fun confetti burst on first visit
+            if (!sessionStorage.getItem('profileVisited')) {
+                sessionStorage.setItem('profileVisited', 'true');
+                createConfetti();
+            }
+
+            function createConfetti() {
+                const colors = ['#667eea', '#764ba2', '#f5576c', '#43e97b', '#4facfe', '#fee140'];
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.cssText = `
+                        left: ${Math.random() * 100}vw;
+                        top: -10px;
+                        width: ${Math.random() * 10 + 5}px;
+                        height: ${Math.random() * 10 + 5}px;
+                        background: ${colors[Math.floor(Math.random() * colors.length)]};
+                        border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                        animation: confettiFall ${Math.random() * 2 + 2}s ease-out forwards;
+                        animation-delay: ${Math.random() * 0.5}s;
+                    `;
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 4000);
+                }
+            }
+        })();
+    </script>
+    <style>
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+
+</html>

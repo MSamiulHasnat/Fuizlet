@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Set - Fuizlet</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .terms-header {
+            margin-bottom: 1rem;
+        }
+
+        .add-term-btn {
+            margin-top: 1rem;
+        }
+
+        .form-divider {
+            margin: 2rem 0;
+            border: none;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="logo">Fuizlet</a>
+        <div class="nav-links"></div>
+    </nav>
+
+    <div class="container">
+        <div id="loading" class="loading">Loading set...</div>
+        <div id="content" style="display: none;">
+            <h1 class="page-title">Edit study set</h1>
+
+            <form id="edit-set-form">
+                <div class="form-group">
+                    <label for="set-title">Title</label>
+                    <input type="text" id="set-title" placeholder='Enter a title, like "World Capitals"' required>
+                </div>
+
+                <div class="form-group">
+                    <label for="set-description">Description (optional)</label>
+                    <textarea id="set-description" rows="2" placeholder="Add a description..."></textarea>
+                </div>
+
+                <h3 class="terms-header">Terms</h3>
+                <div id="term-list" class="card-list"></div>
+
+                <button type="button" id="add-term-btn" class="btn btn-outline add-term-btn">+ Add Term</button>
+
+                <hr class="form-divider">
+
+                <div class="btn-row">
+                    <button type="submit" class="btn btn-primary btn-large" id="submit-btn">💾 Save Changes</button>
+                    <a id="cancel-btn" class="btn btn-outline btn-large" href="set.html">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/app.js"></script>
+    <script>
+        (async () => {
+            Fuizlet.initNavbar();
+
+            const params = new URLSearchParams(window.location.search);
+            const setId = params.get('id');
+
+            if (!setId) {
+                window.location.href = 'sets.html';
+                return;
+            }
+
+            const set = await Fuizlet.Store.getSetById(setId);
+
+            if (!set) {
+                window.location.href = 'sets.html';
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('cancel-btn').href = 'set.html?id=' + setId;
+            document.title = 'Edit: ' + set.title + ' - Fuizlet';
+
+            // Pre-fill form
+            document.getElementById('set-title').value = set.title || '';
+            document.getElementById('set-description').value = set.description || '';
+
+            const termList = document.getElementById('term-list');
+            const addTermBtn = document.getElementById('add-term-btn');
+
+            function createTermCard(term = '', definition = '') {
+                const card = document.createElement('div');
+                card.className = 'term-card';
+                card.innerHTML = `
+                    <input type="text" placeholder="Term" class="term-input" value="${term.replace(/"/g, '&quot;')}">
+                    <input type="text" placeholder="Definition" class="def-input" value="${definition.replace(/"/g, '&quot;')}">
+                    <button type="button" class="delete-btn" title="Delete">&times;</button>
+                `;
+                card.querySelector('.delete-btn').addEventListener('click', () => card.remove());
+                termList.appendChild(card);
+            }
+
+            // Load existing terms
+            (set.terms || []).forEach(t => createTermCard(t.term, t.definition));
+
+            // If no terms, add 2 empty ones
+            if ((set.terms || []).length === 0) {
+                createTermCard();
+                createTermCard();
+            }
+
+            addTermBtn.addEventListener('click', () => createTermCard());
+
+            // Form submission
+            document.getElementById('edit-set-form').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const title = document.getElementById('set-title').value.trim();
+                const description = document.getElementById('set-description').value.trim();
+                const submitBtn = document.getElementById('submit-btn');
+
+                const termCards = document.querySelectorAll('.term-card');
+                const terms = [];
+
+                termCards.forEach(card => {
+                    const term = card.querySelector('.term-input').value.trim();
+                    const def = card.querySelector('.def-input').value.trim();
+                    if (term && def) {
+                        terms.push({ term, definition: def });
+                    }
+                });
+
+                if (terms.length < 2) {
+                    alert('Please add at least 2 terms with definitions.');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+
+                try {
+                    await Fuizlet.Store.updateSet(setId, { title, description, terms });
+                    window.location.href = 'set.html?id=' + setId;
+                } catch (err) {
+                    console.error(err);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '💾 Save Changes';
+                    alert('Failed to save changes. Please try again.');
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

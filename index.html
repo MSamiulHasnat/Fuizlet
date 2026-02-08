@@ -8,17 +8,14 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
     <nav class="navbar">
         <a href="index.html" class="logo">Fuizlet</a>
         <div class="nav-links">
-            <a href="pages/sets.html">Sets</a>
-            <a href="pages/folders.html">Folders</a>
-            <a href="pages/groups.html">Groups</a>
-            <a href="pages/login.html" class="btn btn-outline">Log In</a>
-            <a href="pages/signup.html" class="btn btn-primary">Sign Up</a>
+            <!-- Dynamic content loaded by initNavbar -->
         </div>
     </nav>
 
@@ -50,7 +47,11 @@
         <p>&copy; 2026 Fuizlet. A Quizlet clone for learning.</p>
     </footer>
 
+    <script src="js/supabase-config.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        Fuizlet.initNavbar();
+    </script>
 </body>
 
 </html>

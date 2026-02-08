@@ -378,6 +378,142 @@ const Store = {
 };
 
 // ========================================
+// NAVBAR & UI UTILITIES
+// ========================================
+function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.split(/[\s@]+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
+function getAvatarColor(name) {
+    const colors = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+        'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+        'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'
+    ];
+    const hash = (name || '').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+}
+
+async function initNavbar(navLinksSelector = '.nav-links') {
+    const navLinks = document.querySelector(navLinksSelector);
+    if (!navLinks) return;
+
+    const user = await Store.getCurrentUser();
+    const isLoggedIn = !!user;
+
+    // Determine base path (for pages in subdirectory)
+    const isInPages = window.location.pathname.includes('/pages/');
+    const basePath = isInPages ? '../' : '';
+    const pagesPath = isInPages ? '' : 'pages/';
+
+    if (isLoggedIn) {
+        const username = user.user_metadata?.username || user.email || 'User';
+        const initials = getInitials(username);
+        const avatarColor = getAvatarColor(username);
+
+        navLinks.innerHTML = `
+            <a href="${pagesPath}sets.html">Sets</a>
+            <a href="${pagesPath}folders.html">Folders</a>
+            <a href="${pagesPath}groups.html">Groups</a>
+            <a href="${pagesPath}create.html" class="btn btn-primary">+ Create</a>
+            <div class="user-menu">
+                <button class="avatar-btn" id="avatar-btn" style="background: ${avatarColor};">
+                    ${initials}
+                </button>
+                <div class="dropdown-menu" id="dropdown-menu">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar" style="background: ${avatarColor};">${initials}</div>
+                        <div class="dropdown-info">
+                            <strong>${username}</strong>
+                            ${user.email ? `<small>${user.email}</small>` : ''}
+                        </div>
+                    </div>
+                    <hr class="dropdown-divider">
+                    <a href="${pagesPath}profile.html" class="dropdown-item">👤 Profile</a>
+                    <a href="${pagesPath}sets.html" class="dropdown-item">📚 My Sets</a>
+                    <a href="${pagesPath}folders.html" class="dropdown-item">📁 My Folders</a>
+                    <hr class="dropdown-divider">
+                    <button class="dropdown-item logout-btn" id="logout-btn">🚪 Log Out</button>
+                </div>
+            </div>
+        `;
+
+        // Add dropdown styles if not present
+        if (!document.getElementById('navbar-styles')) {
+            const style = document.createElement('style');
+            style.id = 'navbar-styles';
+            style.textContent = `
+                .user-menu { position: relative; }
+                .avatar-btn {
+                    width: 40px; height: 40px; border-radius: 50%; border: none;
+                    color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+                    display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                }
+                .avatar-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+                .dropdown-menu {
+                    position: absolute; top: 50px; right: 0; background: white;
+                    border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+                    min-width: 220px; padding: 0.5rem 0; display: none; z-index: 1000;
+                    animation: dropdownFadeIn 0.2s ease;
+                }
+                .dropdown-menu.active { display: block; }
+                @keyframes dropdownFadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+                .dropdown-header { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; }
+                .dropdown-avatar { width: 45px; height: 45px; border-radius: 50%; font-weight: 700; color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+                .dropdown-info { display: flex; flex-direction: column; }
+                .dropdown-info strong { font-size: 0.95rem; }
+                .dropdown-info small { color: #6b7280; font-size: 0.8rem; }
+                .dropdown-divider { border: none; border-top: 1px solid #e5e7eb; margin: 0.25rem 0; }
+                .dropdown-item { display: block; width: 100%; padding: 0.75rem 1rem; text-align: left; background: none; border: none; font-size: 0.9rem; color: #374151; cursor: pointer; text-decoration: none; transition: background 0.15s; }
+                .dropdown-item:hover { background: #f3f4f6; }
+                .logout-btn { color: #dc2626; }
+                .logout-btn:hover { background: #fef2f2; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Toggle dropdown
+        document.getElementById('avatar-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('dropdown-menu').classList.toggle('active');
+        });
+
+        // Close on outside click
+        document.addEventListener('click', () => {
+            document.getElementById('dropdown-menu')?.classList.remove('active');
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await Store.logout();
+            window.location.href = basePath + 'index.html';
+        });
+
+    } else {
+        // Not logged in - show login/signup
+        navLinks.innerHTML = `
+            <a href="${pagesPath}sets.html">Sets</a>
+            <a href="${pagesPath}folders.html">Folders</a>
+            <a href="${pagesPath}groups.html">Groups</a>
+            <a href="${pagesPath}login.html" class="btn btn-outline">Log In</a>
+            <a href="${pagesPath}signup.html" class="btn btn-primary">Sign Up</a>
+        `;
+    }
+}
+
+// ========================================
 // EXPORT
 // ========================================
 window.Fuizlet = {
@@ -386,5 +522,9 @@ window.Fuizlet = {
     CloudStore,
     generateId,
     shuffleArray,
-    isCloudMode: () => getSupabase() !== null
+    isCloudMode: () => getSupabase() !== null,
+    initNavbar,
+    getInitials,
+    getAvatarColor
 };
+

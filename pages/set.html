@@ -101,6 +101,12 @@
             border: none;
             border-top: 1px solid var(--color-border);
         }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
     </style>
 </head>
 
@@ -122,7 +128,10 @@
             <h3 class="section-title">Terms in this set</h3>
             <div id="terms-list" class="terms-list"></div>
             <hr class="divider">
-            <button id="delete-set-btn" class="delete-set-btn">Delete this set</button>
+            <div class="action-buttons">
+                <a id="edit-set-btn" class="btn btn-outline">✏️ Edit Set</a>
+                <button id="delete-set-btn" class="delete-set-btn">🗑️ Delete</button>
+            </div>
         </div>
     </div>
 
@@ -130,6 +139,7 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
+            Fuizlet.initNavbar();
             const params = new URLSearchParams(window.location.search);
             const setId = params.get('id');
 
@@ -175,6 +185,9 @@
                 `;
                 termsList.appendChild(row);
             });
+
+            // Edit set
+            document.getElementById('edit-set-btn').href = 'edit.html?id=' + setId;
 
             // Delete set
             document.getElementById('delete-set-btn').addEventListener('click', async () => {
