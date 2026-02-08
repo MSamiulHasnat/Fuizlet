@@ -7,6 +7,7 @@
     <title>Groups - Fuizlet</title>
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .groups-grid {
             display: grid;
@@ -127,6 +128,17 @@
         .page-header .page-title {
             margin-bottom: 0;
         }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .subtitle {
+            margin-bottom: 2rem;
+            color: var(--color-text-muted);
+        }
     </style>
 </head>
 
@@ -146,9 +158,9 @@
             <h1 class="page-title">My Groups</h1>
             <button class="btn btn-primary" id="create-group-btn">+ New Group</button>
         </div>
-        <p style="margin-bottom: 2rem; color: var(--color-text-muted);">Groups let you organize study sets and invite
-            members to collaborate.</p>
-        <div id="groups-container" class="groups-grid"></div>
+        <p class="subtitle">Groups let you organize study sets and invite members to collaborate.</p>
+        <div id="loading" class="loading">Loading...</div>
+        <div id="groups-container" class="groups-grid" style="display: none;"></div>
     </div>
 
     <!-- Create Group Modal -->
@@ -176,85 +188,87 @@
         </div>
     </div>
 
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
     <script>
-        const container = document.getElementById('groups-container');
-        const modal = document.getElementById('create-modal');
-        const createBtn = document.getElementById('create-group-btn');
-        const cancelBtn = document.getElementById('cancel-btn');
-        const form = document.getElementById('create-group-form');
+        (async () => {
+            const container = document.getElementById('groups-container');
+            const loading = document.getElementById('loading');
+            const modal = document.getElementById('create-modal');
+            const createBtn = document.getElementById('create-group-btn');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const form = document.getElementById('create-group-form');
 
-        const currentUser = Fuizlet.Store.getCurrentUser();
+            const currentUser = await Fuizlet.Store.getCurrentUser();
 
-        function renderGroups() {
-            const groups = Fuizlet.Store.getGroups();
+            async function renderGroups() {
+                const groups = await Fuizlet.Store.getGroups();
+                loading.style.display = 'none';
+                container.style.display = 'grid';
 
-            if (groups.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h2>No groups yet</h2>
-                        <p>Create a group to collaborate with others on study sets!</p>
-                    </div>
-                `;
-                return;
+                if (groups.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>No groups yet</h2>
+                            <p>Create a group to collaborate with others on study sets!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = '';
+                groups.forEach(group => {
+                    const card = document.createElement('div');
+                    card.className = 'group-card';
+                    const members = group.members || [];
+                    const setIds = group.setIds || group.set_ids || [];
+                    card.innerHTML = `
+                        <h3>👥 ${group.name}</h3>
+                        <p>${group.description || 'No description'}</p>
+                        ${group.school ? `<p style="font-size: 0.85rem; color: var(--color-text-muted);">🏫 ${group.school}</p>` : ''}
+                        <div class="group-meta">
+                            <span class="members-count">👤 ${members.length} members</span>
+                            <span class="sets-count">📚 ${setIds.length} sets</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        window.location.href = 'group.html?id=' + group.id;
+                    });
+                    container.appendChild(card);
+                });
             }
 
-            container.innerHTML = '';
-            groups.forEach(group => {
-                const card = document.createElement('div');
-                card.className = 'group-card';
-                card.innerHTML = `
-                    <h3>👥 ${group.name}</h3>
-                    <p>${group.description || 'No description'}</p>
-                    ${group.school ? `<p style="font-size: 0.85rem; color: var(--color-text-muted);">🏫 ${group.school}</p>` : ''}
-                    <div class="group-meta">
-                        <span class="members-count">👤 ${group.members.length} members</span>
-                        <span class="sets-count">📚 ${group.setIds.length} sets</span>
-                    </div>
-                `;
-                card.addEventListener('click', () => {
-                    window.location.href = 'group.html?id=' + group.id;
-                });
-                container.appendChild(card);
+            createBtn.addEventListener('click', () => modal.classList.add('active'));
+            cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('group-name').value.trim();
+                const description = document.getElementById('group-desc').value.trim();
+                const school = document.getElementById('group-school').value.trim();
+
+                const username = currentUser ? (currentUser.user_metadata?.username || currentUser.email || currentUser.username || 'You') : 'You';
+
+                const group = {
+                    id: Fuizlet.generateId(),
+                    name,
+                    description,
+                    school,
+                    members: [username],
+                    setIds: [],
+                    createdBy: username,
+                    createdAt: new Date().toISOString()
+                };
+
+                await Fuizlet.Store.addGroup(group);
+                modal.classList.remove('active');
+                form.reset();
+                await renderGroups();
             });
-        }
 
-        createBtn.addEventListener('click', () => {
-            modal.classList.add('active');
-        });
-
-        cancelBtn.addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('group-name').value.trim();
-            const description = document.getElementById('group-desc').value.trim();
-            const school = document.getElementById('group-school').value.trim();
-
-            const group = {
-                id: Fuizlet.generateId(),
-                name,
-                description,
-                school,
-                members: [currentUser ? currentUser.username : 'You'],
-                setIds: [],
-                createdBy: currentUser ? currentUser.username : 'You',
-                createdAt: new Date().toISOString()
-            };
-
-            Fuizlet.Store.addGroup(group);
-            modal.classList.remove('active');
-            form.reset();
-            renderGroups();
-        });
-
-        renderGroups();
+            await renderGroups();
+        })();
     </script>
 </body>
 

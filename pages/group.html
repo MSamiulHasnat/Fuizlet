@@ -7,6 +7,7 @@
     <title>Group - Fuizlet</title>
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .group-header {
             margin-bottom: 2rem;
@@ -162,6 +163,12 @@
             border-radius: 6px;
             cursor: pointer;
         }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
     </style>
 </head>
 
@@ -174,26 +181,29 @@
     </nav>
 
     <div class="container">
-        <div class="group-header" id="group-header"></div>
+        <div id="loading" class="loading">Loading...</div>
+        <div id="content" style="display: none;">
+            <div class="group-header" id="group-header"></div>
 
-        <div class="section">
-            <div class="section-header">
-                <h2>👥 Members</h2>
-                <button class="btn btn-outline small-btn" id="invite-btn">+ Invite</button>
+            <div class="section">
+                <div class="section-header">
+                    <h2>👥 Members</h2>
+                    <button class="btn btn-outline small-btn" id="invite-btn">+ Invite</button>
+                </div>
+                <div class="members-list" id="members-list"></div>
             </div>
-            <div class="members-list" id="members-list"></div>
-        </div>
 
-        <div class="section">
-            <div class="section-header">
-                <h2>📚 Study Sets</h2>
-                <button class="btn btn-primary small-btn" id="add-sets-btn">+ Add Sets</button>
+            <div class="section">
+                <div class="section-header">
+                    <h2>📚 Study Sets</h2>
+                    <button class="btn btn-primary small-btn" id="add-sets-btn">+ Add Sets</button>
+                </div>
+                <div class="sets-grid" id="sets-container"></div>
             </div>
-            <div class="sets-grid" id="sets-container"></div>
-        </div>
 
-        <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
-        <button id="delete-group-btn" class="delete-btn">Delete Group</button>
+            <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
+            <button id="delete-group-btn" class="delete-btn">Delete Group</button>
+        </div>
     </div>
 
     <!-- Add Sets Modal -->
@@ -212,8 +222,6 @@
     <div class="modal-overlay" id="invite-modal">
         <div class="modal">
             <h2>Invite Members</h2>
-
-            <!-- Invite Link Section -->
             <div class="invite-section">
                 <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📎 Share Invite Link</label>
                 <div style="display: flex; gap: 0.5rem;">
@@ -223,10 +231,7 @@
                 <p style="font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.5rem;">Anyone with this link
                     can join the group</p>
             </div>
-
             <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
-
-            <!-- Email Invite Section -->
             <div class="invite-section">
                 <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📧 Invite by Email</label>
                 <div class="form-group" style="margin-bottom: 0.5rem;">
@@ -235,10 +240,7 @@
                 <button class="btn btn-primary" id="send-email-btn" style="width: 100%;">Send Invitation</button>
                 <p id="email-status" style="font-size: 0.85rem; margin-top: 0.5rem; display: none;"></p>
             </div>
-
             <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--color-border);">
-
-            <!-- Username Invite Section -->
             <div class="invite-section">
                 <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">👤 Add by Username</label>
                 <div class="form-group" style="margin-bottom: 0.5rem;">
@@ -246,177 +248,177 @@
                 </div>
                 <button class="btn btn-outline" id="confirm-invite" style="width: 100%;">Add Member</button>
             </div>
-
             <div style="margin-top: 1.5rem;">
                 <button class="btn btn-outline" id="cancel-invite" style="width: 100%;">Close</button>
             </div>
         </div>
     </div>
 
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const groupId = params.get('id');
+        (async () => {
+            const params = new URLSearchParams(window.location.search);
+            const groupId = params.get('id');
 
-        if (!groupId) window.location.href = 'groups.html';
-
-        let group = Fuizlet.Store.getGroupById(groupId);
-        if (!group) window.location.href = 'groups.html';
-
-        const headerEl = document.getElementById('group-header');
-        const membersList = document.getElementById('members-list');
-        const setsContainer = document.getElementById('sets-container');
-        const addModal = document.getElementById('add-modal');
-        const inviteModal = document.getElementById('invite-modal');
-        const availableSetsEl = document.getElementById('available-sets');
-
-        let selectedSets = [];
-
-        function render() {
-            group = Fuizlet.Store.getGroupById(groupId);
-            document.title = group.name + ' - Fuizlet';
-
-            headerEl.innerHTML = `
-                <h1>👥 ${group.name}</h1>
-                <p>${group.description || ''}</p>
-                ${group.school ? `<p class="school">🏫 ${group.school}</p>` : ''}
-            `;
-
-            // Members
-            membersList.innerHTML = group.members.map(m =>
-                `<span class="member-badge">${m}</span>`
-            ).join('');
-
-            // Sets
-            if (group.setIds.length === 0) {
-                setsContainer.innerHTML = '<div class="empty-message">No sets yet. Add some!</div>';
-            } else {
-                setsContainer.innerHTML = '';
-                group.setIds.forEach(setId => {
-                    const set = Fuizlet.Store.getSetById(setId);
-                    if (!set) return;
-                    const card = document.createElement('div');
-                    card.className = 'set-card';
-                    card.innerHTML = `
-                        <h3>${set.title}</h3>
-                        <p>${set.terms.length} terms</p>
-                        <div class="set-card-actions">
-                            <a href="set.html?id=${set.id}" class="btn btn-outline small-btn">Study</a>
-                        </div>
-                    `;
-                    setsContainer.appendChild(card);
-                });
-            }
-        }
-
-        // Add Sets
-        document.getElementById('add-sets-btn').addEventListener('click', () => {
-            selectedSets = [];
-            const allSets = Fuizlet.Store.getSets();
-            const setsNotInGroup = allSets.filter(s => !group.setIds.includes(s.id));
-
-            if (setsNotInGroup.length === 0) {
-                availableSetsEl.innerHTML = '<p style="color: var(--color-text-muted);">All sets are already in this group.</p>';
-            } else {
-                availableSetsEl.innerHTML = setsNotInGroup.map(s => `
-                    <div class="set-option" data-id="${s.id}">
-                        <strong>${s.title}</strong> - ${s.terms.length} terms
-                    </div>
-                `).join('');
-
-                document.querySelectorAll('.set-option').forEach(opt => {
-                    opt.addEventListener('click', () => {
-                        opt.classList.toggle('selected');
-                        const id = opt.dataset.id;
-                        if (selectedSets.includes(id)) {
-                            selectedSets = selectedSets.filter(x => x !== id);
-                        } else {
-                            selectedSets.push(id);
-                        }
-                    });
-                });
-            }
-            addModal.classList.add('active');
-        });
-
-        document.getElementById('cancel-add').addEventListener('click', () => addModal.classList.remove('active'));
-        document.getElementById('confirm-add').addEventListener('click', () => {
-            selectedSets.forEach(setId => Fuizlet.Store.addSetToGroup(groupId, setId));
-            addModal.classList.remove('active');
-            render();
-        });
-        addModal.addEventListener('click', (e) => { if (e.target === addModal) addModal.classList.remove('active'); });
-
-        // Invite Member
-        document.getElementById('invite-btn').addEventListener('click', () => {
-            // Generate invite link
-            const baseUrl = window.location.origin + window.location.pathname.replace('group.html', '');
-            const inviteLink = baseUrl + 'join.html?group=' + groupId;
-            document.getElementById('invite-link').value = inviteLink;
-            inviteModal.classList.add('active');
-        });
-
-        // Copy Link
-        document.getElementById('copy-link-btn').addEventListener('click', () => {
-            const linkInput = document.getElementById('invite-link');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                const btn = document.getElementById('copy-link-btn');
-                btn.textContent = 'Copied!';
-                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-            });
-        });
-
-        // Send Email (simulated - opens mail client)
-        document.getElementById('send-email-btn').addEventListener('click', () => {
-            const email = document.getElementById('invite-email').value.trim();
-            const statusEl = document.getElementById('email-status');
-
-            if (!email || !email.includes('@')) {
-                statusEl.textContent = '❌ Please enter a valid email address';
-                statusEl.style.display = 'block';
-                statusEl.style.color = '#dc2626';
+            if (!groupId) {
+                window.location.href = 'groups.html';
                 return;
             }
 
-            const inviteLink = document.getElementById('invite-link').value;
-            const subject = encodeURIComponent('Join my group on Fuizlet: ' + group.name);
-            const body = encodeURIComponent(
-                `Hi!\n\nI'd like to invite you to join my study group "${group.name}" on Fuizlet.\n\nClick this link to join:\n${inviteLink}\n\nSee you there!`
-            );
-
-            // Open email client
-            window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-
-            statusEl.textContent = '✅ Opening your email client...';
-            statusEl.style.display = 'block';
-            statusEl.style.color = '#10b981';
-            document.getElementById('invite-email').value = '';
-        });
-
-        // Add by Username
-        document.getElementById('cancel-invite').addEventListener('click', () => inviteModal.classList.remove('active'));
-        document.getElementById('confirm-invite').addEventListener('click', () => {
-            const username = document.getElementById('invite-username').value.trim();
-            if (username) {
-                Fuizlet.Store.addMemberToGroup(groupId, username);
-                document.getElementById('invite-username').value = '';
-                render();
-                // Show success briefly
-                alert('✅ ' + username + ' added to the group!');
-            }
-        });
-        inviteModal.addEventListener('click', (e) => { if (e.target === inviteModal) inviteModal.classList.remove('active'); });
-
-        // Delete Group
-        document.getElementById('delete-group-btn').addEventListener('click', () => {
-            if (confirm('Delete this group?')) {
-                Fuizlet.Store.deleteGroup(groupId);
+            let group = await Fuizlet.Store.getGroupById(groupId);
+            if (!group) {
                 window.location.href = 'groups.html';
+                return;
             }
-        });
 
-        render();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            const headerEl = document.getElementById('group-header');
+            const membersList = document.getElementById('members-list');
+            const setsContainer = document.getElementById('sets-container');
+            const addModal = document.getElementById('add-modal');
+            const inviteModal = document.getElementById('invite-modal');
+            const availableSetsEl = document.getElementById('available-sets');
+
+            let selectedSets = [];
+
+            async function render() {
+                group = await Fuizlet.Store.getGroupById(groupId);
+                const members = group.members || [];
+                const setIds = group.setIds || group.set_ids || [];
+                document.title = group.name + ' - Fuizlet';
+
+                headerEl.innerHTML = `
+                    <h1>👥 ${group.name}</h1>
+                    <p>${group.description || ''}</p>
+                    ${group.school ? `<p class="school">🏫 ${group.school}</p>` : ''}
+                `;
+
+                membersList.innerHTML = members.map(m => `<span class="member-badge">${m}</span>`).join('');
+
+                if (setIds.length === 0) {
+                    setsContainer.innerHTML = '<div class="empty-message">No sets yet. Add some!</div>';
+                } else {
+                    setsContainer.innerHTML = '';
+                    for (const setId of setIds) {
+                        const set = await Fuizlet.Store.getSetById(setId);
+                        if (!set) continue;
+                        const card = document.createElement('div');
+                        card.className = 'set-card';
+                        card.innerHTML = `
+                            <h3>${set.title}</h3>
+                            <p>${(set.terms || []).length} terms</p>
+                            <div class="set-card-actions">
+                                <a href="set.html?id=${set.id}" class="btn btn-outline small-btn">Study</a>
+                            </div>
+                        `;
+                        setsContainer.appendChild(card);
+                    }
+                }
+            }
+
+            document.getElementById('add-sets-btn').addEventListener('click', async () => {
+                selectedSets = [];
+                const allSets = await Fuizlet.Store.getSets();
+                const setIds = group.setIds || group.set_ids || [];
+                const setsNotInGroup = allSets.filter(s => !setIds.includes(s.id));
+
+                if (setsNotInGroup.length === 0) {
+                    availableSetsEl.innerHTML = '<p style="color: var(--color-text-muted);">All sets are already in this group.</p>';
+                } else {
+                    availableSetsEl.innerHTML = setsNotInGroup.map(s => `
+                        <div class="set-option" data-id="${s.id}">
+                            <strong>${s.title}</strong> - ${(s.terms || []).length} terms
+                        </div>
+                    `).join('');
+
+                    document.querySelectorAll('.set-option').forEach(opt => {
+                        opt.addEventListener('click', () => {
+                            opt.classList.toggle('selected');
+                            const id = opt.dataset.id;
+                            if (selectedSets.includes(id)) {
+                                selectedSets = selectedSets.filter(x => x !== id);
+                            } else {
+                                selectedSets.push(id);
+                            }
+                        });
+                    });
+                }
+                addModal.classList.add('active');
+            });
+
+            document.getElementById('cancel-add').addEventListener('click', () => addModal.classList.remove('active'));
+            document.getElementById('confirm-add').addEventListener('click', async () => {
+                for (const setId of selectedSets) {
+                    await Fuizlet.Store.addSetToGroup(groupId, setId);
+                }
+                addModal.classList.remove('active');
+                await render();
+            });
+            addModal.addEventListener('click', (e) => { if (e.target === addModal) addModal.classList.remove('active'); });
+
+            document.getElementById('invite-btn').addEventListener('click', () => {
+                const baseUrl = window.location.origin + window.location.pathname.replace('group.html', '');
+                const inviteLink = baseUrl + 'join.html?group=' + groupId;
+                document.getElementById('invite-link').value = inviteLink;
+                inviteModal.classList.add('active');
+            });
+
+            document.getElementById('copy-link-btn').addEventListener('click', () => {
+                const linkInput = document.getElementById('invite-link');
+                linkInput.select();
+                navigator.clipboard.writeText(linkInput.value).then(() => {
+                    const btn = document.getElementById('copy-link-btn');
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+                });
+            });
+
+            document.getElementById('send-email-btn').addEventListener('click', () => {
+                const email = document.getElementById('invite-email').value.trim();
+                const statusEl = document.getElementById('email-status');
+
+                if (!email || !email.includes('@')) {
+                    statusEl.textContent = '❌ Please enter a valid email address';
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = '#dc2626';
+                    return;
+                }
+
+                const inviteLink = document.getElementById('invite-link').value;
+                const subject = encodeURIComponent('Join my group on Fuizlet: ' + group.name);
+                const body = encodeURIComponent(`Hi!\n\nI'd like to invite you to join my study group "${group.name}" on Fuizlet.\n\nClick this link to join:\n${inviteLink}\n\nSee you there!`);
+                window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+
+                statusEl.textContent = '✅ Opening your email client...';
+                statusEl.style.display = 'block';
+                statusEl.style.color = '#10b981';
+                document.getElementById('invite-email').value = '';
+            });
+
+            document.getElementById('cancel-invite').addEventListener('click', () => inviteModal.classList.remove('active'));
+            document.getElementById('confirm-invite').addEventListener('click', async () => {
+                const username = document.getElementById('invite-username').value.trim();
+                if (username) {
+                    await Fuizlet.Store.addMemberToGroup(groupId, username);
+                    document.getElementById('invite-username').value = '';
+                    await render();
+                    alert('✅ ' + username + ' added to the group!');
+                }
+            });
+            inviteModal.addEventListener('click', (e) => { if (e.target === inviteModal) inviteModal.classList.remove('active'); });
+
+            document.getElementById('delete-group-btn').addEventListener('click', async () => {
+                if (confirm('Delete this group?')) {
+                    await Fuizlet.Store.deleteGroup(groupId);
+                    window.location.href = 'groups.html';
+                }
+            });
+
+            await render();
+        })();
     </script>
 </body>
 

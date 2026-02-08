@@ -7,6 +7,7 @@
     <title>Learn - Fuizlet</title>
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .learn-container {
             max-width: 600px;
@@ -88,6 +89,17 @@
             font-weight: 700;
             color: var(--color-primary);
         }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .progress-text {
+            margin-bottom: 1rem;
+            color: var(--color-text-muted);
+        }
     </style>
 </head>
 
@@ -100,112 +112,122 @@
     </nav>
 
     <div class="learn-container">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
+        <div id="loading" class="loading">Loading...</div>
+        <div id="content" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p id="progress-text" class="progress-text">Question 1 of X</p>
+            <div id="question-area"></div>
         </div>
-        <p id="progress-text" style="margin-bottom: 1rem; color: var(--color-text-muted);">Question 1 of X</p>
-
-        <div id="question-area"></div>
     </div>
 
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const setId = params.get('id');
-        const set = Fuizlet.Store.getSetById(setId);
+        (async () => {
+            const params = new URLSearchParams(window.location.search);
+            const setId = params.get('id');
+            const set = await Fuizlet.Store.getSetById(setId);
 
-        if (!set) window.location.href = 'sets.html';
-
-        document.getElementById('back-to-set').href = 'set.html?id=' + setId;
-        document.title = set.title + ' - Learn';
-
-        const terms = Fuizlet.shuffleArray([...set.terms]);
-        let currentIndex = 0;
-        let score = 0;
-
-        const questionArea = document.getElementById('question-area');
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.getElementById('progress-text');
-
-        function updateProgress() {
-            const pct = ((currentIndex) / terms.length) * 100;
-            progressFill.style.width = pct + '%';
-            progressText.textContent = `Question ${currentIndex + 1} of ${terms.length}`;
-        }
-
-        function generateOptions(correctAnswer) {
-            const options = [correctAnswer];
-            const otherDefs = set.terms
-                .map(t => t.definition)
-                .filter(d => d !== correctAnswer);
-            const shuffled = Fuizlet.shuffleArray(otherDefs);
-            options.push(...shuffled.slice(0, 3));
-            return Fuizlet.shuffleArray(options);
-        }
-
-        function showQuestion() {
-            if (currentIndex >= terms.length) {
-                showResults();
+            if (!set) {
+                window.location.href = 'sets.html';
                 return;
             }
 
-            updateProgress();
-            const term = terms[currentIndex];
-            const options = generateOptions(term.definition);
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.getElementById('back-to-set').href = 'set.html?id=' + setId;
+            document.title = set.title + ' - Learn';
 
-            questionArea.innerHTML = `
-                <div class="question-card">
-                    <h2>${term.term}</h2>
-                    <div class="options" id="options">
-                        ${options.map((opt, i) => `
-                            <button class="option-btn" data-answer="${opt}">${opt}</button>
-                        `).join('')}
+            const terms = Fuizlet.shuffleArray([...(set.terms || [])]);
+            let currentIndex = 0;
+            let score = 0;
+
+            const questionArea = document.getElementById('question-area');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+
+            function updateProgress() {
+                const pct = ((currentIndex) / terms.length) * 100;
+                progressFill.style.width = pct + '%';
+                progressText.textContent = `Question ${currentIndex + 1} of ${terms.length}`;
+            }
+
+            function generateOptions(correctAnswer) {
+                const options = [correctAnswer];
+                const otherDefs = (set.terms || [])
+                    .map(t => t.definition)
+                    .filter(d => d !== correctAnswer);
+                const shuffled = Fuizlet.shuffleArray(otherDefs);
+                options.push(...shuffled.slice(0, 3));
+                return Fuizlet.shuffleArray(options);
+            }
+
+            function showQuestion() {
+                if (currentIndex >= terms.length) {
+                    showResults();
+                    return;
+                }
+
+                updateProgress();
+                const term = terms[currentIndex];
+                const options = generateOptions(term.definition);
+
+                questionArea.innerHTML = `
+                    <div class="question-card">
+                        <h2>${term.term}</h2>
+                        <div class="options" id="options">
+                            ${options.map(opt => `
+                                <button class="option-btn" data-answer="${opt}">${opt}</button>
+                            `).join('')}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
 
-            document.querySelectorAll('.option-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const selected = this.dataset.answer;
-                    const correct = term.definition;
+                document.querySelectorAll('.option-btn').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const selected = this.dataset.answer;
+                        const correct = term.definition;
 
-                    document.querySelectorAll('.option-btn').forEach(b => {
-                        b.disabled = true;
-                        if (b.dataset.answer === correct) {
-                            b.classList.add('correct');
+                        document.querySelectorAll('.option-btn').forEach(b => {
+                            b.disabled = true;
+                            if (b.dataset.answer === correct) {
+                                b.classList.add('correct');
+                            }
+                        });
+
+                        if (selected === correct) {
+                            score++;
+                        } else {
+                            this.classList.add('wrong');
                         }
+
+                        setTimeout(() => {
+                            currentIndex++;
+                            showQuestion();
+                        }, 1000);
                     });
-
-                    if (selected === correct) {
-                        score++;
-                    } else {
-                        this.classList.add('wrong');
-                    }
-
-                    setTimeout(() => {
-                        currentIndex++;
-                        showQuestion();
-                    }, 1000);
                 });
-            });
-        }
+            }
 
-        function showResults() {
-            progressFill.style.width = '100%';
-            progressText.textContent = 'Complete!';
+            function showResults() {
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Complete!';
 
-            const pct = Math.round((score / terms.length) * 100);
-            questionArea.innerHTML = `
-                <div class="question-card result-card">
-                    <h2>Great job!</h2>
-                    <div class="score">${pct}%</div>
-                    <p style="margin: 1rem 0; color: var(--color-text-muted);">You got ${score} out of ${terms.length} correct</p>
-                    <a href="set.html?id=${setId}" class="btn btn-primary">Back to Set</a>
-                </div>
-            `;
-        }
+                const pct = Math.round((score / terms.length) * 100);
+                questionArea.innerHTML = `
+                    <div class="question-card result-card">
+                        <h2>Great job!</h2>
+                        <div class="score">${pct}%</div>
+                        <p style="margin: 1rem 0; color: var(--color-text-muted);">You got ${score} out of ${terms.length} correct</p>
+                        <a href="set.html?id=${setId}" class="btn btn-primary">Back to Set</a>
+                    </div>
+                `;
+            }
 
-        showQuestion();
+            if (terms.length > 0) showQuestion();
+        })();
     </script>
 </body>
 

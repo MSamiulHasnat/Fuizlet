@@ -7,6 +7,7 @@
     <title>Join Group - Fuizlet</title>
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .join-container {
             max-width: 500px;
@@ -66,20 +67,24 @@
         </div>
     </div>
 
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const groupId = params.get('group');
-        const card = document.getElementById('join-card');
+        (async () => {
+            const params = new URLSearchParams(window.location.search);
+            const groupId = params.get('group');
+            const card = document.getElementById('join-card');
 
-        if (!groupId) {
-            card.innerHTML = `
-                <h1 class="error-state">Invalid Link</h1>
-                <p>This invite link appears to be broken.</p>
-                <a href="groups.html" class="btn btn-primary btn-join">Go to Groups</a>
-            `;
-        } else {
-            const group = Fuizlet.Store.getGroupById(groupId);
+            if (!groupId) {
+                card.innerHTML = `
+                    <h1 class="error-state">Invalid Link</h1>
+                    <p>This invite link appears to be broken.</p>
+                    <a href="groups.html" class="btn btn-primary btn-join">Go to Groups</a>
+                `;
+                return;
+            }
+
+            const group = await Fuizlet.Store.getGroupById(groupId);
 
             if (!group) {
                 card.innerHTML = `
@@ -87,42 +92,41 @@
                     <p>This group may have been deleted or the link is incorrect.</p>
                     <a href="groups.html" class="btn btn-primary btn-join">Go to Groups</a>
                 `;
-            } else {
-                const currentUser = Fuizlet.Store.getCurrentUser();
-                const username = currentUser ? currentUser.username : null;
-                const isMember = username && group.members.includes(username);
-
-                if (isMember) {
-                    card.innerHTML = `
-                        <h1>👥 ${group.name}</h1>
-                        <p class="already-member">✅ You're already a member!</p>
-                        <a href="group.html?id=${groupId}" class="btn btn-primary btn-join">Open Group</a>
-                    `;
-                } else {
-                    card.innerHTML = `
-                        <h1>You've been invited!</h1>
-                        <div class="group-name">👥 ${group.name}</div>
-                        <p>${group.description || 'Join this study group'}</p>
-                        ${group.members.length > 0 ? `<p style="font-size: 0.9rem;">${group.members.length} member${group.members.length > 1 ? 's' : ''}</p>` : ''}
-                        <button id="join-btn" class="btn btn-primary btn-join">Join Group</button>
-                    `;
-
-                    document.getElementById('join-btn').addEventListener('click', () => {
-                        if (!username) {
-                            // Prompt for name if not logged in
-                            const name = prompt('Enter your name or username to join:');
-                            if (name && name.trim()) {
-                                Fuizlet.Store.addMemberToGroup(groupId, name.trim());
-                                window.location.href = 'group.html?id=' + groupId;
-                            }
-                        } else {
-                            Fuizlet.Store.addMemberToGroup(groupId, username);
-                            window.location.href = 'group.html?id=' + groupId;
-                        }
-                    });
-                }
+                return;
             }
-        }
+
+            const currentUser = await Fuizlet.Store.getCurrentUser();
+            const username = currentUser ? (currentUser.user_metadata?.username || currentUser.email || currentUser.username) : null;
+            const members = group.members || [];
+            const isMember = username && members.includes(username);
+
+            if (isMember) {
+                card.innerHTML = `
+                    <h1>👥 ${group.name}</h1>
+                    <p class="already-member">✅ You're already a member!</p>
+                    <a href="group.html?id=${groupId}" class="btn btn-primary btn-join">Open Group</a>
+                `;
+            } else {
+                card.innerHTML = `
+                    <h1>You've been invited!</h1>
+                    <div class="group-name">👥 ${group.name}</div>
+                    <p>${group.description || 'Join this study group'}</p>
+                    ${members.length > 0 ? `<p style="font-size: 0.9rem;">${members.length} member${members.length > 1 ? 's' : ''}</p>` : ''}
+                    <button id="join-btn" class="btn btn-primary btn-join">Join Group</button>
+                `;
+
+                document.getElementById('join-btn').addEventListener('click', async () => {
+                    let memberName = username;
+                    if (!memberName) {
+                        memberName = prompt('Enter your name or username to join:');
+                        if (!memberName || !memberName.trim()) return;
+                        memberName = memberName.trim();
+                    }
+                    await Fuizlet.Store.addMemberToGroup(groupId, memberName);
+                    window.location.href = 'group.html?id=' + groupId;
+                });
+            }
+        })();
     </script>
 </body>
 

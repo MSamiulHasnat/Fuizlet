@@ -7,6 +7,7 @@
     <title>Study Set - Fuizlet</title>
     <link rel="stylesheet" href="../css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .set-header {
             margin-bottom: 2rem;
@@ -84,6 +85,22 @@
         .delete-set-btn:hover {
             background: #fecaca;
         }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+
+        .section-title {
+            margin-bottom: 1rem;
+        }
+
+        .divider {
+            margin: 2rem 0;
+            border: none;
+            border-top: 1px solid var(--color-border);
+        }
     </style>
 </head>
 
@@ -97,75 +114,76 @@
     </nav>
 
     <div class="container">
-        <div class="set-header" id="set-header">
-            <!-- Title and description will be injected -->
+        <div id="loading" class="loading">Loading...</div>
+        <div id="content" style="display: none;">
+            <div class="set-header" id="set-header"></div>
+            <h3 class="section-title">Study Modes</h3>
+            <div class="study-modes" id="study-modes"></div>
+            <h3 class="section-title">Terms in this set</h3>
+            <div id="terms-list" class="terms-list"></div>
+            <hr class="divider">
+            <button id="delete-set-btn" class="delete-set-btn">Delete this set</button>
         </div>
-
-        <h3 style="margin-bottom: 1rem;">Study Modes</h3>
-        <div class="study-modes" id="study-modes">
-            <!-- Mode buttons -->
-        </div>
-
-        <h3 style="margin-bottom: 1rem;">Terms in this set</h3>
-        <div id="terms-list" class="terms-list">
-            <!-- Terms will be rendered here -->
-        </div>
-
-        <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--color-border);">
-        <button id="delete-set-btn" class="delete-set-btn">Delete this set</button>
     </div>
 
+    <script src="../js/supabase-config.js"></script>
     <script src="../js/app.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const setId = params.get('id');
+        (async () => {
+            const params = new URLSearchParams(window.location.search);
+            const setId = params.get('id');
 
-        if (!setId) {
-            window.location.href = 'sets.html';
-        }
-
-        const set = Fuizlet.Store.getSetById(setId);
-
-        if (!set) {
-            window.location.href = 'sets.html';
-        }
-
-        document.title = set.title + ' - Fuizlet';
-
-        // Render header
-        document.getElementById('set-header').innerHTML = `
-            <h1>${set.title}</h1>
-            <p>${set.description || ''}</p>
-            <p style="margin-top: 0.5rem; font-size: 0.9rem;">${set.terms.length} terms</p>
-        `;
-
-        // Render study mode buttons
-        document.getElementById('study-modes').innerHTML = `
-            <a href="flashcards.html?id=${setId}" class="mode-btn">📚 Flashcards</a>
-            <a href="learn.html?id=${setId}" class="mode-btn">🧠 Learn</a>
-            <a href="test.html?id=${setId}" class="mode-btn">✍️ Test</a>
-            <a href="match.html?id=${setId}" class="mode-btn">🎮 Match</a>
-        `;
-
-        // Render terms
-        const termsList = document.getElementById('terms-list');
-        set.terms.forEach(t => {
-            const row = document.createElement('div');
-            row.className = 'term-row';
-            row.innerHTML = `
-                <div class="term">${t.term}</div>
-                <div class="definition">${t.definition}</div>
-            `;
-            termsList.appendChild(row);
-        });
-
-        // Delete set
-        document.getElementById('delete-set-btn').addEventListener('click', function () {
-            if (confirm('Are you sure you want to delete this set?')) {
-                Fuizlet.Store.deleteSet(setId);
+            if (!setId) {
                 window.location.href = 'sets.html';
+                return;
             }
-        });
+
+            const set = await Fuizlet.Store.getSetById(setId);
+
+            if (!set) {
+                window.location.href = 'sets.html';
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+            document.title = set.title + ' - Fuizlet';
+
+            // Render header
+            document.getElementById('set-header').innerHTML = `
+                <h1>${set.title}</h1>
+                <p>${set.description || ''}</p>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem;">${(set.terms || []).length} terms</p>
+            `;
+
+            // Render study mode buttons
+            document.getElementById('study-modes').innerHTML = `
+                <a href="flashcards.html?id=${setId}" class="mode-btn">📚 Flashcards</a>
+                <a href="learn.html?id=${setId}" class="mode-btn">🧠 Learn</a>
+                <a href="test.html?id=${setId}" class="mode-btn">✍️ Test</a>
+                <a href="match.html?id=${setId}" class="mode-btn">🎮 Match</a>
+            `;
+
+            // Render terms
+            const termsList = document.getElementById('terms-list');
+            (set.terms || []).forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'term-row';
+                row.innerHTML = `
+                    <div class="term">${t.term}</div>
+                    <div class="definition">${t.definition}</div>
+                `;
+                termsList.appendChild(row);
+            });
+
+            // Delete set
+            document.getElementById('delete-set-btn').addEventListener('click', async () => {
+                if (confirm('Are you sure you want to delete this set?')) {
+                    await Fuizlet.Store.deleteSet(setId);
+                    window.location.href = 'sets.html';
+                }
+            });
+        })();
     </script>
 </body>
 
