@@ -544,28 +544,23 @@
             // Calculate total flashcards
             const totalCards = sets.reduce((sum, s) => sum + (s.terms?.length || 0), 0);
 
-            // Render stats
+            // Render stats - 3 clickable cards
             document.getElementById('stats-grid').innerHTML = `
-                <div class="stat-card">
+                <a href="sets.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon">📚</div>
                     <div class="stat-value">${sets.length}</div>
                     <div class="stat-label">Flashcard Sets</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🃏</div>
-                    <div class="stat-value">${totalCards}</div>
-                    <div class="stat-label">Flashcards</div>
-                </div>
-                <div class="stat-card">
+                </a>
+                <a href="folders.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon">📁</div>
                     <div class="stat-value">${folders.length}</div>
                     <div class="stat-label">Folders</div>
-                </div>
-                <div class="stat-card">
+                </a>
+                <a href="groups.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon">👥</div>
                     <div class="stat-value">${groups.length}</div>
                     <div class="stat-label">Groups</div>
-                </div>
+                </a>
             `;
 
             // Render sets (max 6)
