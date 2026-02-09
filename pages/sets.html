@@ -125,50 +125,46 @@
     <script src="../js/app.js"></script>
     <script>
         (async () => {
-            Fuizlet.initNavbar();
-            const container = document.getElementById('sets-container');
-            const userInfo = document.getElementById('user-info');
+            try {
+                Fuizlet.initNavbar();
+                const container = document.getElementById('sets-container');
 
-            // Show user info
-            const user = await Fuizlet.Store.getCurrentUser();
-            if (user) {
-                const displayName = user.user_metadata?.username || user.email || user.username || 'User';
-                userInfo.innerHTML = `
-                    <span>👤 ${displayName}</span>
-                    <button class="logout-btn" id="logout-btn">Log Out</button>
-                `;
-                document.getElementById('logout-btn').addEventListener('click', async () => {
-                    await Fuizlet.Store.logout();
-                    window.location.href = 'login.html';
-                });
-            }
+                // Load sets
+                const sets = await Fuizlet.Store.getSets();
 
-            // Load sets
-            const sets = await Fuizlet.Store.getSets();
-
-            if (sets.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h2>No flashcard sets yet</h2>
-                        <p>Create your first set to start studying!</p>
-                        <a href="create.html" class="btn btn-primary" style="margin-top: 1rem;">Create Set</a>
+                if (!sets || sets.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h2>No flashcard sets yet</h2>
+                            <p>Create your first set to start studying!</p>
+                            <a href="create.html" class="btn btn-primary" style="margin-top: 1rem;">Create Set</a>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '';
+                    sets.forEach(set => {
+                        const card = document.createElement('div');
+                        card.className = 'set-card';
+                        card.innerHTML = `
+                            <h3>${set.title}</h3>
+                            <p>${set.description || 'No description'}</p>
+                            <div class="term-count">${(set.terms || []).length} terms</div>
+                        `;
+                        card.addEventListener('click', () => {
+                            window.location.href = 'set.html?id=' + set.id;
+                        });
+                        container.appendChild(card);
+                    });
+                }
+            } catch (err) {
+                console.error("Error loading sets:", err);
+                document.getElementById('sets-container').innerHTML = `
+                    <div class="empty-state" style="color: #ef4444;">
+                        <h2>Error loading flashcard sets</h2>
+                        <p>${err.message}</p>
+                        <a href="login.html" class="btn btn-primary" style="margin-top: 1rem;">Login</a>
                     </div>
                 `;
-            } else {
-                container.innerHTML = '';
-                sets.forEach(set => {
-                    const card = document.createElement('div');
-                    card.className = 'set-card';
-                    card.innerHTML = `
-                        <h3>${set.title}</h3>
-                        <p>${set.description || 'No description'}</p>
-                        <div class="term-count">${(set.terms || []).length} terms</div>
-                    `;
-                    card.addEventListener('click', () => {
-                        window.location.href = 'set.html?id=' + set.id;
-                    });
-                    container.appendChild(card);
-                });
             }
         })();
     </script>
