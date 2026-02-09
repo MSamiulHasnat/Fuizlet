@@ -689,7 +689,8 @@
 
                 try {
                     if (Fuizlet.isCloudMode()) {
-                        await window.supabaseClient.auth.updateUser({
+                        const supabase = window.SupabaseConfig.getClient();
+                        await supabase.auth.updateUser({
                             data: { avatar_type: selectedAvatar.type, avatar_value: selectedAvatar.value }
                         });
                     } else {
