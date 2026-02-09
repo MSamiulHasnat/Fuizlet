@@ -142,14 +142,15 @@
                 let email = input;
                 if (!input.includes('@') && Fuizlet.isCloudMode()) {
                     // It's a username - look up the email from profiles table
-                    const { data: profile, error: lookupError } = await window.supabaseClient
+                    const supabase = window.SupabaseConfig.getClient();
+                    const { data: profile, error: lookupError } = await supabase
                         .from('profiles')
                         .select('auth_email')
                         .eq('username', input)
                         .single();
 
                     if (lookupError || !profile?.auth_email) {
-                        throw new Error('Username not found');
+                        throw new Error('Username not found. Please check your username or use your email instead.');
                     }
                     email = profile.auth_email;
                 }
@@ -165,7 +166,7 @@
                     window.location.href = 'sets.html';
                 }
             } catch (err) {
-                errorEl.textContent = 'An error occurred. Please try again.';
+                errorEl.textContent = err.message || 'An error occurred. Please try again.';
                 errorEl.style.display = 'block';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Log In';
